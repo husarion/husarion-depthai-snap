@@ -1,0 +1,4 @@
+#!/bin/sh -e
+
+snapctl start --enable ${SNAP_NAME}.daemon 2>&1 || true
+logger -t ${SNAP_NAME} "Plug 'ros-humble-ros-base' connected"

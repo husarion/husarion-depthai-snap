@@ -1,0 +1,106 @@
+name: husarion-depthai
+adopt-info: husarion-depthai
+license: Apache-2.0
+summary: The husarion-depthai
+description: |
+  The husarion-depthai.
+
+  It offers the following parameters,
+
+  - ros-domain-id
+  - ros-localhost-only
+  - fastdds-default-profiles-file
+  - transport
+
+  which can be set as follows, e.g.,
+
+    snap set husarion-depthai ros-domain-id=1
+
+grade: stable
+confinement: strict
+base: core22
+
+contact: https://github.com/husarion/depthai-snap/issues
+issues: https://github.com/husarion/depthai-snap/issues
+website: https://husarion.com/
+
+architectures:
+  - build-on: amd64
+    build-for: amd64
+  # - build-on: amd64
+  #   build-for: arm64
+  - build-on: arm64
+    build-for: arm64
+
+slots:
+  shm-slot:
+    interface: shared-memory
+    write: ['*'] # paths are relative to /dev/shm
+
+plugs:
+  shm-plug:
+    interface: shared-memory
+    shared-memory: shm-slot
+    private: false
+
+apps:
+
+  daemon:
+    command: usr/bin/launcher.sh
+    command-chain: [usr/bin/ros_setup.sh]
+    daemon: simple
+    install-mode: enable
+    plugs: [network, network-bind, shm-plug]
+    slots: [shm-slot]
+    extensions: [ros2-humble-ros-base]
+
+  husarion-depthai:
+    command: usr/bin/launcher.sh
+    command-chain: [usr/bin/check_daemon_running.sh, usr/bin/ros_setup.sh]
+    plugs: [network, network-bind, shm-plug]
+    slots: [shm-slot]
+    extensions: [ros2-humble-ros-base]
+  start:
+    command: usr/bin/start_launcher.sh
+
+  stop:
+    command: usr/bin/stop_launcher.sh
+
+parts:
+
+  husarion-depthai:
+    plugin: colcon
+    source: https://github.com/luxonis/depthai-ros.git
+    source-branch: v2.8.1-humble
+    build-packages:
+      - python3-catkin-pkg-modules
+
+    # build-packages: 
+    #   - python3-vcstool
+    #   - python3-pip
+    #   - python3-colcon-common-extensions
+    #   - python3-rosdep
+    #   - python3-catkin-pkg
+      
+  # ffmpeg:
+  #   plugin: colcon
+  #   source: https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
+  #   build-packages: 
+  #     - python3-vcstool
+  #     - python3-pip
+  #     - python3-colcon-common-extensions
+  #     - python3-rosdep
+  #   override-pull: |
+  #     craftctl default
+
+  #     vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport.repos
+
+  # copy local scripts to the snap usr/bin
+  local-files:
+    plugin: dump
+    source: snap/local/
+    organize:
+      '*.sh': usr/bin/
+      '*.py': usr/bin/
+      '*.yaml': usr/share/rosbot-xl/config/
+      '*.xml': usr/share/rosbot-xl/config/
