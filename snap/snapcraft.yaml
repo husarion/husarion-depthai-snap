@@ -60,6 +60,7 @@ apps:
     plugs: [network, network-bind, shm-plug]
     slots: [shm-slot]
     extensions: [ros2-humble-ros-base]
+
   start:
     command: usr/bin/start_launcher.sh
 
@@ -74,6 +75,16 @@ parts:
     source-branch: v2.8.1-humble
     build-packages:
       - python3-catkin-pkg-modules
+    override-pull: |
+      craftctl default
+
+      # Set the snap version from the git tag
+      # The grade is set to 'stable' if the latest entry in the git history
+      # is the tag itself, otherwise set to devel
+      version="$(git describe --always --tags| sed -e 's/^v//;s/-/+git/;y/-/./')"
+      [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
+      craftctl set version="$version"
+      craftctl set grade="$grade"
 
     # build-packages: 
     #   - python3-vcstool
