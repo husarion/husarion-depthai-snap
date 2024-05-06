@@ -1,0 +1,11 @@
+services:
+  luxonis:
+    image: husarion/depthai:humble-2.8.1-20240127
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - ./squashfs-root/usr/share/husarion-depthai/config/oak-1-low-bandwidth.yaml:/params.yaml
+    device_cgroup_rules:
+      - 'c 189:* rmw'
+    command: >
+      ros2 launch depthai_ros_driver camera.launch.py
+        params_file:=/params.yaml

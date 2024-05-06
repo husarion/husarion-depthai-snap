@@ -9,7 +9,7 @@ log() {
 FASTDDS_FILE=$(snapctl get fastdds-default-profiles-file)
 
 if [ ! -f "${SNAP_COMMON}/${FASTDDS_FILE}" ]; then
-  # eg. /var/snap/rosbot-xl/common/fastdds.xml
+  # eg. /var/snap/${SNAP_NAME}/common/fastdds.xml
   log "${SNAP_COMMON}/${FASTDDS_FILE} does not exist."
 fi
 
@@ -19,16 +19,16 @@ if [ -n "${FASTDDS_FILE}" ] && [ -f "${SNAP_COMMON}/${FASTDDS_FILE}" ]; then
   log "$(cat $FASTRTPS_DEFAULT_PROFILES_FILE)"
 else
   TRANSPORT="$(snapctl get transport)"
-  # watch the log with: "journalctl -t rosbot-xl"
+  # watch the log with: "journalctl -t ${SNAP_NAME}"
   log "transport: ${TRANSPORT}"
 
   case "$TRANSPORT" in
   shm)
-    export FASTRTPS_DEFAULT_PROFILES_FILE=$SNAP/usr/share/rosbot-xl/config/shm-only.xml
+    export FASTRTPS_DEFAULT_PROFILES_FILE=$SNAP/usr/share/${SNAP_NAME}/config/shm-only.xml
     log "$(cat $FASTRTPS_DEFAULT_PROFILES_FILE)"
     ;;
   udp)
-    export FASTRTPS_DEFAULT_PROFILES_FILE=$SNAP/usr/share/rosbot-xl/config/udp-only.xml
+    export FASTRTPS_DEFAULT_PROFILES_FILE=$SNAP/usr/share/${SNAP_NAME}/config/udp-only.xml
     log "$(cat $FASTRTPS_DEFAULT_PROFILES_FILE)"
     ;;
   builtin)

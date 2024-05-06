@@ -6,24 +6,26 @@ log() {
     logger -t "${SNAP_NAME}" "launcher: $message"
 }
 
-# Iterate over the snap parameters and retrieve their value.
-# If a value is set, it is forwarded to the launch file.
-OPTIONS="namespace mecanum include-camera-mount camera-model lidar-model"
-LAUNCH_OPTIONS=""
+ros2 launch depthai_ros_driver camera.launch.py params_file:=$SNAP/usr/share/${SNAP_NAME}/config/oak-1-low-bandwidth.yaml
 
-for OPTION in ${OPTIONS}; do
-  VALUE="$(snapctl get driver.${OPTION})"
-  if [ -n "${VALUE}" ]; then
-    LAUNCH_OPTIONS+="${OPTION}:=${VALUE} "
-  fi
-done
+# # Iterate over the snap parameters and retrieve their value.
+# # If a value is set, it is forwarded to the launch file.
+# OPTIONS="namespace mecanum include-camera-mount camera-model lidar-model"
+# LAUNCH_OPTIONS=""
 
-# Replace '-' with '_'
-LAUNCH_OPTIONS=$(echo ${LAUNCH_OPTIONS} | tr - _)
+# for OPTION in ${OPTIONS}; do
+#   VALUE="$(snapctl get driver.${OPTION})"
+#   if [ -n "${VALUE}" ]; then
+#     LAUNCH_OPTIONS+="${OPTION}:=${VALUE} "
+#   fi
+# done
 
-if [ "${LAUNCH_OPTIONS}" ]; then
-  # watch the log with: "journalctl -t rosbot-xl"
-  log "Running with options: ${LAUNCH_OPTIONS}"
-fi
+# # Replace '-' with '_'
+# LAUNCH_OPTIONS=$(echo ${LAUNCH_OPTIONS} | tr - _)
 
-ros2 launch rosbot_xl_bringup combined.launch.py ${LAUNCH_OPTIONS}
+# if [ "${LAUNCH_OPTIONS}" ]; then
+#   # watch the log with: "journalctl -t rosbot-xl"
+#   log "Running with options: ${LAUNCH_OPTIONS}"
+# fi
+
+# ros2 launch rosbot_xl_bringup combined.launch.py ${LAUNCH_OPTIONS}

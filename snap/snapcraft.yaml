@@ -49,15 +49,16 @@ apps:
     command: usr/bin/launcher.sh
     command-chain: [usr/bin/ros_setup.sh]
     daemon: simple
-    install-mode: enable
-    plugs: [network, network-bind, shm-plug]
+    install-mode: disable
+    plugs: [network, network-bind, shm-plug, raw-usb]
     slots: [shm-slot]
     extensions: [ros2-humble-ros-base]
 
   husarion-depthai:
     command: usr/bin/launcher.sh
     command-chain: [usr/bin/check_daemon_running.sh, usr/bin/ros_setup.sh]
-    plugs: [network, network-bind, shm-plug]
+    plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
+    # block-devices, 
     slots: [shm-slot]
     extensions: [ros2-humble-ros-base]
 
@@ -67,24 +68,41 @@ apps:
   stop:
     command: usr/bin/stop_launcher.sh
 
+layout:
+  /run/udev/data:
+    bind: $SNAP_DATA/run/udev/data
+
 parts:
 
   husarion-depthai:
-    plugin: colcon
-    source: https://github.com/luxonis/depthai-ros.git
-    source-branch: v2.8.1-humble
-    build-packages:
-      - python3-catkin-pkg-modules
-    override-pull: |
+    plugin: nil
+    stage-packages:
+      - ros-humble-depthai-ros
+    # override-stage: |
+    override-prime: |
       craftctl default
 
-      # Set the snap version from the git tag
-      # The grade is set to 'stable' if the latest entry in the git history
-      # is the tag itself, otherwise set to devel
-      version="$(git describe --always --tags| sed -e 's/^v//;s/-/+git/;y/-/./')"
-      [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
-      craftctl set version="$version"
-      craftctl set grade="$grade"
+      #version="$(dpkg -s ros-humble-depthai-ros-driver | grep Version | awk '{print $2}')"
+      #craftctl set version="$version"
+      craftctl set version="2.9.0-1jammy.20240415.141623"
+      craftctl set grade="stable"
+
+  # husarion-depthai:
+  #   plugin: colcon
+  #   source: https://github.com/luxonis/depthai-ros.git
+  #   source-branch: v2.8.1-humble
+  #   build-packages:
+  #     - python3-catkin-pkg-modules
+  #   override-pull: |
+  #     craftctl default
+
+  #     # Set the snap version from the git tag
+  #     # The grade is set to 'stable' if the latest entry in the git history
+  #     # is the tag itself, otherwise set to devel
+  #     version="$(git describe --always --tags| sed -e 's/^v//;s/-/+git/;y/-/./')"
+  #     [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
+  #     craftctl set version="$version"
+  #     craftctl set grade="$grade"
 
     # build-packages: 
     #   - python3-vcstool
@@ -113,5 +131,5 @@ parts:
     organize:
       '*.sh': usr/bin/
       '*.py': usr/bin/
-      '*.yaml': usr/share/rosbot-xl/config/
-      '*.xml': usr/share/rosbot-xl/config/
+      '*.yaml': usr/share/husarion-depthai/config/
+      '*.xml': usr/share/husarion-depthai/config/
