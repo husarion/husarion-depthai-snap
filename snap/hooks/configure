@@ -20,82 +20,52 @@ log() {
     logger -t "${SNAP_NAME}" "configure hook: $message"
 }
 
-# # Make sure ROS 2 nodes parameters value is a boolean
-# OPTS="mecanum include-camera-mount"
-# for OPT in ${OPTS}; do
-#   VALUE="$(snapctl get driver.${OPT})"
-#   if [ -n "${VALUE}" ]; then
-#     case "${VALUE}" in
-#     "True") ;;
-#     "False") ;;
-#     *)
-#       log_and_echo "configure hook: '${VALUE}' is not a supported value for ${OPT}." \
-#         "Possible values are True or False."
-#       exit 1
-#       ;;
-#     esac
-#   fi
-# done
+$SNAP/usr/bin/configure_hook_ros.sh
 
-# Make sure ROS_LOCALHOST_ONLY is valid
-OPT="ros-localhost-only"
-ROS_LOCALHOST_ONLY="$(snapctl get ${OPT})"
-if [ -n "${ROS_LOCALHOST_ONLY}" ]; then
-  case "${ROS_LOCALHOST_ONLY}" in
-  1) ;;
-  0) ;;
-  *)
-    log_and_echo "'${ROS_LOCALHOST_ONLY}' is not a supported value for '${OPT}'." \
-      "Possible values are 0 or 1."
-    exit 1
-    ;;
-  esac
-fi
+DEPTHAI_PARAMS_FILE="$(snapctl get driver.params-file)"
 
-# Make sure ROS_DOMAIN_ID is valid
-OPT="ros-domain-id"
-ROS_DOMAIN_ID="$(snapctl get ${OPT})"
-
-is_integer() {
-  expr "$1" : '-\?[0-9][0-9]*$' >/dev/null 2>&1
-}
-
-if ! is_integer "${ROS_DOMAIN_ID}" || [ "${ROS_DOMAIN_ID}" -lt 0 ] || [ "${ROS_DOMAIN_ID}" -gt 232 ]; then
-  log_and_echo "'${ROS_DOMAIN_ID}' is not a supported value for '${OPT}'. Possible values are integers between 0 and 232."
+# Check if the file exists
+if [ ! -f "$DEPTHAI_PARAMS_FILE" ]; then
+  log_and_echo "$DEPTHAI_PARAMS_FILE does not exist."
   exit 1
 fi
 
-# Get the transport setting using snapctl
-OPT="transport"
-TRANSPORT_SETTING="$(snapctl get ${OPT})"
+export LD_LIBRARY_PATH=$SNAP/usr/lib/$(uname -m)-linux-gnu/pulseaudio:$SNAP/usr/lib/$(uname -m)-linux-gnu/blas:$SNAP/usr/lib/$(uname -m)-linux-gnu/lapack:$LD_LIBRARY_PATH
 
-# Check if the transport setting is valid
-case "$TRANSPORT_SETTING" in
-"udp")
-  log "'$TRANSPORT_SETTING' transport set."
-  ;;
-"shm" | "builtin")
-  if snapctl is-connected shm-plug; then
-    log "'$TRANSPORT_SETTING' transport set."
-  else
-    log_and_echo "to use 'builtin' and 'shm' tranport shm-plug need to be connected, please run:"
-    log_and_echo "sudo snap connect ${SNAP_NAME}:shm-plug ${SNAP_NAME}:shm-slot"
+export FFMPEG_ENCODING=$(snapctl get driver.ffmpeg-image-transport.encoding)
+
+# Check if FFMPEG_ENCODING is set
+if [ -n "$FFMPEG_ENCODING" ]; then
+  # Run ffmpeg -codecs and check if the codec is available
+  if ! ffmpeg -encoders 2>/dev/null | awk '{print $2}' | grep -q "$FFMPEG_ENCODING"; then
+    log_and_echo "Error: Codec $FFMPEG_ENCODING is not available:"
+    # log_and_echo "Available codecs:"
+    # ffmpeg -encoders 2>/dev/null | awk '/^ V/ {print $0}'
     exit 1
   fi
-  ;;
-*)
-  log_and_echo "'${TRANSPORT_SETTING}' is not a supported value for '${OPT}'. Possible values are: udp, shm, builtin."
-  exit 1
-  ;;
-esac
 
-# Make sure ros-humble-ros-base is connected
-ROS_PLUG="ros-humble-ros-base"
+  cp $SNAP_COMMON/ffmpeg_params_template.yaml $SNAP_COMMON/ffmpeg_params.yaml
+  yq -i './**.ros__parameters.ffmpeg_image_transport = {}' $SNAP_COMMON/ffmpeg_params.yaml
 
-if ! snapctl is-connected ${ROS_PLUG}; then
-    log_and_echo "Plug '${ROS_PLUG}' isn't connected. Please run:"
-    log_and_echo "snap connect ${SNAP_NAME}:${ROS_PLUG} ${ROS_PLUG}:${ROS_PLUG}"
-    exit 1
+  # Get all options in JSON format
+  OPTIONS=$(snapctl get driver.ffmpeg-image-transport)
+  keys=$(echo $OPTIONS | yq '. | to_entries | .[].key')
+  for key in $keys; do
+    export FFMPEG_KEY=$key
+    export FFMPEG_VALUE=$(snapctl get driver.ffmpeg-image-transport.$FFMPEG_KEY)
+    yq -i './**.ros__parameters.ffmpeg_image_transport += {env(FFMPEG_KEY): env(FFMPEG_VALUE)}' $SNAP_COMMON/ffmpeg_params.yaml
+  done
+else
+  cp $SNAP_COMMON/ffmpeg_params_template.yaml $SNAP_COMMON/ffmpeg_params.yaml
+  yq -i './**.ros__parameters.ffmpeg_image_transport = {}' $SNAP_COMMON/ffmpeg_params.yaml
 fi
 
-snapctl restart ${SNAP_NAME}.daemon
+# restart services with new ROS 2 config
+for service in daemon; do
+  if snapctl services ${SNAP_NAME}.${service} | grep -qw active; then
+    snapctl restart ${SNAP_NAME}.${service}
+    log "Restarted ${SNAP_NAME}.${service}"
+  fi
+done
+
+

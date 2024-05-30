@@ -4,7 +4,7 @@
 log_and_echo() {
     local message="$1"
     # Log the message with logger
-    logger -t "${SNAP_NAME}" "check_daemon_running: $message"
+    logger -t "${SNAP_NAME}" "${SNAP_NAME}.check_daemon_running.sh: $message"
     # Echo the message to standard error
     echo >&2 "$message"
 }

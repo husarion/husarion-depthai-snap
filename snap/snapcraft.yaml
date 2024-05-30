@@ -85,9 +85,15 @@ parts:
     plugin: nil
     stage-packages:
       - ros-humble-depthai-ros
+      - python3-vcstool
     # override-stage: |
     override-prime: |
       craftctl default
+
+      cd $CRAFT_PART_SRC
+
+      git clone https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
+      vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport/ffmpeg_image_transport.repos
 
       #version="$(dpkg -s ros-humble-depthai-ros-driver | grep Version | awk '{print $2}')"
       #craftctl set version="$version"
@@ -130,6 +136,21 @@ parts:
   #     craftctl default
 
   #     vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport.repos
+  yq:
+    plugin: nil
+    override-build: |
+      craftctl default
+
+      YQ_VERSION="v4.35.1"
+      TARGETARCH=$CRAFT_ARCH_BUILD_FOR
+      curl -L "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${TARGETARCH}" -o $CRAFT_PART_BUILD/yq
+    override-prime: |
+      craftctl default
+    
+      cp $CRAFT_PART_BUILD/yq $CRAFT_PRIME/usr/bin/yq
+      chmod +x $CRAFT_PRIME/usr/bin/yq
+    build-packages:
+      - curl
 
   # copy local scripts to the snap usr/bin
   local-files:
