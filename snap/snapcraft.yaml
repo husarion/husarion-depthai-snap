@@ -61,7 +61,7 @@ apps:
     daemon: simple
     install-mode: disable
     plugs: [network, network-bind, shm-plug, raw-usb, c189-plug]
-    slots: [shm-slot]
+    slots: [shm-slot, c189-slot]
     extensions: [ros2-humble-ros-base]
 
   husarion-depthai:
@@ -70,7 +70,7 @@ apps:
     plugs: [network, network-bind, shm-plug, raw-usb, c189-plug]
     # plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
     # block-devices, 
-    slots: [shm-slot]
+    slots: [shm-slot, c189-slot]
     extensions: [ros2-humble-ros-base]
 
   start:

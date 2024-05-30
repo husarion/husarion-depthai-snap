@@ -21,6 +21,31 @@ clean:
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
     snapcraft clean   
 
+iterate:
+    #!/bin/bash
+    start_time=$(date +%s)
+    
+    echo "Starting script..."
+
+    sudo snap remove husarion-depthai
+    sudo rm -rf squashfs-root/
+    export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
+    snapcraft clean
+    snapcraft
+    unsquashfs husarion-depthai*.snap
+    sudo snap try squashfs-root/
+    sudo snap connect husarion-depthai:raw-usb
+    # sudo snap connect husarion-depthai:c189-plug rosbot:c189-slot
+
+    end_time=$(date +%s)
+    duration=$(( end_time - start_time ))
+
+    hours=$(( duration / 3600 ))
+    minutes=$(( (duration % 3600) / 60 ))
+    seconds=$(( duration % 60 ))
+
+    printf "Script completed in %02d:%02d:%02d (hh:mm:ss)\n" $hours $minutes $seconds
+
 swap-enable:
     #!/bin/bash
     sudo fallocate -l 3G /swapfile
