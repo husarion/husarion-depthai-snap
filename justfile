@@ -69,3 +69,8 @@ swap-disable:
     sudo sed -i '/\/swapfile swap swap defaults 0 0/d' /etc/fstab  # Remove the swap file entry
     sudo sed -i '/vm.swappiness=10/d' /etc/sysctl.conf  # Remove or comment out the swappiness setting
     sudo sysctl -p  # Reload sysctl configuration
+
+publish:
+    #!/bin/bash
+    snapcraft login
+    snapcraft upload --release edge husarion-depthai*.snap
