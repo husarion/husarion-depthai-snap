@@ -1,5 +1,5 @@
 ---
-/oak:
+/**:
   ros__parameters:
     # qos_overrides:
       # /oak/rgb/image_raw:

@@ -85,29 +85,58 @@ parts:
     plugin: nil
     stage-packages:
       - ros-humble-depthai-ros
-      - python3-vcstool
-    # override-stage: |
-    override-prime: |
+      - ros-humble-image-transport
+      - ros-humble-image-transport-plugins
+      # https://index.ros.org/p/ffmpeg_image_transport/github-ros-misc-utilities-ffmpeg_image_transport/#humble
+      - ros-humble-ffmpeg-image-transport
+      - ffmpeg
+      - ros-humble-cv-bridge
+      # needed to run ffmpeg without errors:
+      - libpulse-dev
+      - libblas3
+      - libjpeg-turbo8-dev
+    override-stage: |
       craftctl default
-
-      cd $CRAFT_PART_SRC
-
-      git clone https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
-      vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport/ffmpeg_image_transport.repos
-
-      #version="$(dpkg -s ros-humble-depthai-ros-driver | grep Version | awk '{print $2}')"
-      #craftctl set version="$version"
-      craftctl set version="2.9.0-1jammy.20240415.141623"
+      version="$(apt-cache policy ros-humble-depthai-ros-driver | grep Candidate | awk '{print $2}')"
+      craftctl set version="$version"
       craftctl set grade="stable"
+
+  # ffmpeg:
+  #   plugin: colcon
+  #   source: https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
+  #   # source-branch: v2.9.0-humble
+  #   build-packages:
+  #     - python3-catkin-pkg-modules
+  #     - python3-vcstool
+  #   stage-packages:
+  #     - ros-humble-image-transport
+  #     - ros-humble-image-transport-plugins
+  #     - ffmpeg
+  #     - ros-humble-cv-bridge
+  #     # needed to run ffmpeg without errors:
+  #     - libpulse-dev
+  #     - libblas3
+  #     - libjpeg-turbo8-dev
+  #   override-pull: |
+  #     craftctl default
+  #     cd $CRAFT_PART_SRC
+  #     vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport.repos
+
 
   # husarion-depthai:
   #   plugin: colcon
   #   source: https://github.com/luxonis/depthai-ros.git
-  #   source-branch: v2.8.1-humble
+  #   source-branch: v2.9.0-humble
   #   build-packages:
   #     - python3-catkin-pkg-modules
+  #     - python3-vcstool
   #   override-pull: |
   #     craftctl default
+
+  #     cd $CRAFT_PART_SRC
+
+  #     git clone https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
+  #     vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport/ffmpeg_image_transport.repos
 
   #     # Set the snap version from the git tag
   #     # The grade is set to 'stable' if the latest entry in the git history
@@ -153,6 +182,13 @@ parts:
       - curl
 
   # copy local scripts to the snap usr/bin
+  local-files-ros:
+    plugin: dump
+    source: snap/local/ros_common/
+    organize:
+      '*.sh': usr/bin/
+      '*.xml': usr/share/husarion-depthai/config/
+
   local-files:
     plugin: dump
     source: snap/local/
@@ -160,4 +196,5 @@ parts:
       '*.sh': usr/bin/
       '*.py': usr/bin/
       '*.yaml': usr/share/husarion-depthai/config/
-      '*.xml': usr/share/husarion-depthai/config/
+      # '*.xml': usr/share/husarion-depthai/config/
+      # '*.json': usr/share/husarion-depthai/config/

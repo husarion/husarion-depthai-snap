@@ -29,6 +29,7 @@ iterate:
 
     sudo snap remove husarion-depthai
     sudo rm -rf squashfs-root/
+    sudo rm -rf husarion-depthai*.snap
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
     snapcraft clean
     snapcraft

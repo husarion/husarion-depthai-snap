@@ -15,8 +15,6 @@ def launch_setup(context, *args, **kwargs):
     if(context.environment.get('DEPTHAI_DEBUG')=='1'):
         log_level='debug'
 
-    
-
     urdf_launch_dir = os.path.join(get_package_share_directory('depthai_descriptions'), 'launch')
     
     params_file = LaunchConfiguration("params_file")
@@ -119,7 +117,7 @@ def launch_setup(context, *args, **kwargs):
                         parameters=[params_file, ffmpeg_params_file, tf_params],
                     )
             ],
-            remappings=remapping,
+            # remappings=remapping,
             arguments=['--ros-args', '--log-level', log_level],
             prefix=[launch_prefix],
             output="both",
