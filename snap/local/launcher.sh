@@ -6,26 +6,45 @@ log() {
     logger -t "${SNAP_NAME}" "launcher: $message"
 }
 
-ros2 launch depthai_ros_driver camera.launch.py params_file:=$SNAP/usr/share/${SNAP_NAME}/config/oak-1-low-bandwidth.yaml
+log_and_echo() {
+    local message="$1"
+    # Log the message with logger
+    logger -t "${SNAP_NAME}" "configure hook: $message"
+    # Echo the message to standard error
+    echo >&2 "$message"
+}
 
-# # Iterate over the snap parameters and retrieve their value.
-# # If a value is set, it is forwarded to the launch file.
-# OPTIONS="namespace mecanum include-camera-mount camera-model lidar-model"
-# LAUNCH_OPTIONS=""
+# Iterate over the snap parameters and retrieve their value.
+# If a value is set, it is forwarded to the launch file.
 
-# for OPTION in ${OPTIONS}; do
-#   VALUE="$(snapctl get driver.${OPTION})"
-#   if [ -n "${VALUE}" ]; then
-#     LAUNCH_OPTIONS+="${OPTION}:=${VALUE} "
-#   fi
-# done
+OPTIONS="\
+    name \
+    parent-frame \
+    camera-model \
+    cam-pos-x \
+    cam-pos-y \
+    cam-pos-z \
+    cam-roll \
+    cam-pitch \
+    cam-yaw \
+    params-file \
+    namespace \
+    device-namespace \
+"
 
-# # Replace '-' with '_'
-# LAUNCH_OPTIONS=$(echo ${LAUNCH_OPTIONS} | tr - _)
+LAUNCH_OPTIONS=""
 
-# if [ "${LAUNCH_OPTIONS}" ]; then
-#   # watch the log with: "journalctl -t rosbot-xl"
-#   log "Running with options: ${LAUNCH_OPTIONS}"
-# fi
+for OPTION in ${OPTIONS}; do
+  VALUE="$(snapctl get driver.${OPTION})"
+  if [ -n "${VALUE}" ]; then
+    OPTION_WITH_UNDERSCORE=$(echo ${OPTION} | tr - _)
+    LAUNCH_OPTIONS+="${OPTION_WITH_UNDERSCORE}:=${VALUE} "
+  fi
+done
 
-# ros2 launch rosbot_xl_bringup combined.launch.py ${LAUNCH_OPTIONS}
+if [ "${LAUNCH_OPTIONS}" ]; then
+  # watch the log with: "journalctl -t husarion-depthai"
+  log_and_echo "Running with options: ${LAUNCH_OPTIONS}"
+fi
+
+ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS} ffmpeg_params_file:=$SNAP_COMMON/ffmpeg_params.yaml

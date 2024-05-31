@@ -1,5 +1,5 @@
 ---
-/oak:
+/**:
   ros__parameters:
     # qos_overrides:
       # /oak/rgb/image_raw:
@@ -89,8 +89,4 @@
       r_set_man_focus: false
       r_set_man_whitebalance: false
       r_whitebalance: 3300
-    ffmpeg_image_transport:
-      encoding: libx264
-      preset: ultrafast
-      tune: zerolatency
     use_sim_time: false
