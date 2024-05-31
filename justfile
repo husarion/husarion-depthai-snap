@@ -70,7 +70,14 @@ swap-disable:
     sudo sed -i '/vm.swappiness=10/d' /etc/sysctl.conf  # Remove or comment out the swappiness setting
     sudo sysctl -p  # Reload sysctl configuration
 
+prepare-store-credentials:
+    #!/bin/bash
+    snapcraft export-login --snaps=husarion-depthai \
+      --acls package_access,package_push,package_update,package_release \
+      exported.txt
+
 publish:
     #!/bin/bash
+    export SNAPCRAFT_STORE_CREDENTIALS=$(cat exported.txt)
     snapcraft login
-    snapcraft upload --release edge husarion-depthai*.snap
+    snapcraft upload --release edge husarion-astra*.snap
