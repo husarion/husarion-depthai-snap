@@ -27,6 +27,7 @@ def launch_setup(context, *args, **kwargs):
         name="republish",
         arguments=[
             "ffmpeg",
+            # "in/ffmpeg:=camera/color/image_raw/ffmpeg",
             "in/ffmpeg:=abc/xyz/rgb/image_raw/ffmpeg",
             "raw",
             "out:=camera/color/image_uncompressed",
