@@ -9,7 +9,6 @@ description: |
 
   - ros-domain-id
   - ros-localhost-only
-  - fastdds-default-profiles-file
   - transport
 
   which can be set as follows, e.g.,
@@ -36,12 +35,12 @@ slots:
   shm-slot:
     interface: shared-memory
     write: ['*'] # paths are relative to /dev/shm
-  c189-slot:
-    interface: custom-device
-    custom-device: c189
-    files:
-      write:
-        - /run/udev/data/c189:*
+  # c189-slot:
+  #   interface: custom-device
+  #   custom-device: c189
+  #   files:
+  #     write:
+  #       - /run/udev/data/c189:*
 
 plugs:
   shm-plug:
@@ -49,9 +48,9 @@ plugs:
     shared-memory: shm-slot
     private: false
 
-  c189-plug:
-    interface: custom-device
-    custom-device: c189
+  # c189-plug:
+  #   interface: custom-device
+  #   custom-device: c189
 
 apps:
 
@@ -60,17 +59,17 @@ apps:
     command-chain: [usr/bin/ros_setup.sh]
     daemon: simple
     install-mode: disable
-    plugs: [network, network-bind, shm-plug, raw-usb, c189-plug]
-    slots: [shm-slot, c189-slot]
+    plugs: [network, network-bind, shm-plug, raw-usb]
+    slots: [shm-slot]
     extensions: [ros2-humble-ros-base]
 
   husarion-depthai:
     command: usr/bin/launcher.sh
     command-chain: [usr/bin/check_daemon_running.sh, usr/bin/ros_setup.sh]
-    plugs: [network, network-bind, shm-plug, raw-usb, c189-plug]
+    plugs: [network, network-bind, shm-plug, raw-usb]
     # plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
     # block-devices, 
-    slots: [shm-slot, c189-slot]
+    slots: [shm-slot]
     extensions: [ros2-humble-ros-base]
 
   start:
