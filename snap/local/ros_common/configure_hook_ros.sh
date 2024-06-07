@@ -66,11 +66,11 @@ if [ "$TRANSPORT_SETTING" = "builtin" ] || [ "$TRANSPORT_SETTING" = "shm" ]; the
   fi
 fi
 
-# Make sure ros-humble-ros-base is connected
-ROS_PLUG="ros-humble-ros-base"
+# # Make sure ros-humble-ros-base is connected
+# ROS_PLUG="ros-humble-ros-base"
 
-if ! snapctl is-connected ${ROS_PLUG}; then
-    log_and_echo "Plug '${ROS_PLUG}' isn't connected. Please run:"
-    log_and_echo "snap connect ${SNAP_NAME}:${ROS_PLUG} ${ROS_PLUG}:${ROS_PLUG}"
-    exit 1
-fi
+# if ! snapctl is-connected ${ROS_PLUG}; then
+#     log_and_echo "Plug '${ROS_PLUG}' isn't connected. Please run:"
+#     log_and_echo "snap connect ${SNAP_NAME}:${ROS_PLUG} ${ROS_PLUG}:${ROS_PLUG}"
+#     exit 1
+# fi
