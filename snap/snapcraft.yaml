@@ -102,6 +102,13 @@ apps:
   stop:
     command: usr/bin/stop_launcher.sh
 
+  image-view:
+    command: usr/bin/image_view_launcher.sh
+    command-chain: [usr/bin/ros_setup.sh]
+    plugs: [network, network-bind, shm-plug, desktop, desktop-legacy, wayland, unity7, opengl]
+    slots: [shm-slot]
+    extensions: [ros2-humble-ros-base]
+
 parts:
 
   husarion-depthai:
@@ -123,6 +130,14 @@ parts:
       version="$(apt-cache policy ros-humble-depthai-ros-driver | grep Candidate | awk '{print $2}')"
       craftctl set version="$version"
       craftctl set grade="stable"
+
+  image-view:
+    plugin: nil
+    stage-packages:
+      - ros-humble-image-view
+      - libcanberra-gtk-module 
+      - libcanberra-gtk3-module
+      - libglu1-mesa
 
   # ffmpeg:
   #   plugin: colcon
