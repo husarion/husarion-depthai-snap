@@ -36,6 +36,8 @@ iterate:
     unsquashfs husarion-depthai*.snap
     sudo snap try squashfs-root/
     sudo snap connect husarion-depthai:raw-usb
+    sudo snap connect husarion-depthai:shm-plug husarion-depthai:shm-slot
+    sudo husarion-depthai.stop
     # sudo snap connect husarion-depthai:c189-plug rosbot:c189-slot
 
     end_time=$(date +%s)

@@ -1,19 +1,43 @@
 name: husarion-depthai
 adopt-info: husarion-depthai
 license: Apache-2.0
-summary: The husarion-depthai
+summary: OAK-x cameras driver for Husarion robots
+icon: snap/gui/icon.png
 description: |
-  The husarion-depthai.
+  The `husarion-depthai` snap contains all the necessary software to bring the OAK-x cameras up.
+  It offers the following parameters:
 
-  It offers the following parameters,
+  * driver: `{...}`
+  * ros-domain-id: `0`
+  * ros-localhost-only: `0`
+  * transport: `udp`
+    
+  The `driver` parameter is a dictionary that contains the following keys:
 
-  - ros-domain-id
-  - ros-localhost-only
-  - transport
+  * name: `oak`
+  * parent-frame: `oak-d-base-frame`
+  * camera-model: `OAK-D`
+  * cam-pos-x: `0.0`
+  * cam-pos-y: `0.0`
+  * cam-pos-z: `0.0`
+  * cam-roll: `0.0`
+  * cam-pitch: `0.0`
+  * cam-yaw: `0.0`
+  * params-file: `$SNAP_COMMON/depthai_params.yaml`
+  * ffmpeg-image-transport.encoding: `libx264`
+  * ffmpeg-image-transport.preset: `ultrafast`
+  * ffmpeg-image-transport.tune: `zerolatency`
+  * namespace: `(unset)`
 
-  which can be set as follows, e.g.,
+  To set the parameters, use the snap set command, e.g.,
 
-    snap set husarion-depthai ros-domain-id=1
+     snap set husarion-depthai driver.namespace=robot
+
+  Default values for `ffmpeg-image-transport`:
+
+  * encoding: `libx264`
+  * preset: `ultrafast`
+  * tune: `zerolatency`
 
 grade: stable
 confinement: strict
@@ -58,7 +82,7 @@ apps:
     command: usr/bin/launcher.sh
     command-chain: [usr/bin/ros_setup.sh]
     daemon: simple
-    install-mode: disable
+    install-mode: enable
     plugs: [network, network-bind, shm-plug, raw-usb]
     slots: [shm-slot]
     extensions: [ros2-humble-ros-base]
