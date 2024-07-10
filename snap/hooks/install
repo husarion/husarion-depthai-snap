@@ -22,14 +22,13 @@ snapctl set driver.params-file=$SNAP_COMMON/depthai_params.yaml
 snapctl set driver.ffmpeg-image-transport.encoding=libx264
 snapctl set driver.ffmpeg-image-transport.preset=ultrafast
 snapctl set driver.ffmpeg-image-transport.tune=zerolatency
-snapctl set driver.namespace!
 
 if ! snapctl is-connected raw-usb; then
   log "Plug 'raw-usb' isn't connected, please run:"
   log "sudo snap connect ${SNAP_NAME}:raw-usb"
 fi
 
-# copy joy params
+# copy params
 cp -r $SNAP/usr/share/husarion-depthai/config/*.yaml ${SNAP_COMMON}/
 
 # # # copy meshes to shared folder

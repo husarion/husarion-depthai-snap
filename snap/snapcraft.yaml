@@ -5,14 +5,22 @@ summary: OAK-x cameras driver for Husarion robots
 icon: snap/gui/icon.png
 description: |
   The `husarion-depthai` snap contains all the necessary software to bring the OAK-x cameras up.
-  It offers the following parameters:
+  
+  **Parameters**
 
-  * driver: `{...}`
-  * ros-domain-id: `0`
-  * ros-localhost-only: `0`
-  * transport: `udp`
-    
-  The `driver` parameter is a dictionary that contains the following keys:
+  The snap provides the following configurable parameters (`param name`: `default value`):
+
+  * `driver`: `{...}`
+  * `ros`: `{...}`
+
+  The `ros` contains the following keys:
+
+  * `ros.domain-id`: `0` - Sets the `ROS_DOMAIN_ID` environment variable for the ROS driver.
+  * `ros.localhost-only`: `0` - Sets the `ROS_LOCALHOST_ONLY` environment variable for the ROS driver.
+  * `ros.transport`: `udp` - Configures DDS transport. Options are `udp`, `shm`, `builtin` (or `rmw_fastrtps_cpp`), `rmw_cyclonedds_cpp`. Corresponding DDS XML files can be found in the `/var/snap/rosbot-xl/common` directory (custom FastDDS setups can also be created here).
+  * `ros.namespace`: `(unset)` - Namespace for all topics and transforms.
+
+  The `driver` contains the following keys:
 
   * name: `oak`
   * parent-frame: `oak-d-base-frame`
@@ -27,7 +35,6 @@ description: |
   * ffmpeg-image-transport.encoding: `libx264`
   * ffmpeg-image-transport.preset: `ultrafast`
   * ffmpeg-image-transport.tune: `zerolatency`
-  * namespace: `(unset)`
 
   To set the parameters, use the snap set command, e.g.,
 
@@ -222,7 +229,7 @@ parts:
   # copy local scripts to the snap usr/bin
   local-files-ros:
     plugin: dump
-    source: snap/local/ros_common/
+    source: snap/local/local-ros/
     organize:
       '*.sh': usr/bin/
       '*.xml': usr/share/husarion-depthai/config/

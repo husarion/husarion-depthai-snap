@@ -9,6 +9,7 @@ Snap for OAK-x cameras customized for Husarion robots
 | `husarion-depthai.start` | Start the `husarion-depthai.daemon` service |
 | `husarion-depthai.stop` | Stop the `husarion-depthai.daemon` service |
 | `husarion-depthai` | Start the application in the foreground (run in the current terminal). Remember to stop the daemon first |
+| `husarion-depthai.image-view` | Preview the image from the camera |
 
 ## Setup FFMPEG
 
