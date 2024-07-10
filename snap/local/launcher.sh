@@ -28,8 +28,6 @@ OPTIONS="\
     cam-pitch \
     cam-yaw \
     params-file \
-    namespace \
-    device-namespace \
 "
 
 LAUNCH_OPTIONS=""

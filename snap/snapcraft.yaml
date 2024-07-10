@@ -5,14 +5,22 @@ summary: OAK-x cameras driver for Husarion robots
 icon: snap/gui/icon.png
 description: |
   The `husarion-depthai` snap contains all the necessary software to bring the OAK-x cameras up.
-  It offers the following parameters:
+  
+  **Parameters**
 
-  * driver: `{...}`
-  * ros-domain-id: `0`
-  * ros-localhost-only: `0`
-  * transport: `udp`
-    
-  The `driver` parameter is a dictionary that contains the following keys:
+  The snap provides the following configurable parameters (`param name`: `default value`):
+
+  * `driver`: `{...}`
+  * `ros`: `{...}`
+
+  The `ros` contains the following keys:
+
+  * `ros.domain-id`: `0` - Sets the `ROS_DOMAIN_ID` environment variable for the ROS driver.
+  * `ros.localhost-only`: `0` - Sets the `ROS_LOCALHOST_ONLY` environment variable for the ROS driver.
+  * `ros.transport`: `udp` - Configures DDS transport. Options are `udp`, `shm`, `builtin` (or `rmw_fastrtps_cpp`), `rmw_cyclonedds_cpp`. Corresponding DDS XML files can be found in the `/var/snap/rosbot-xl/common` directory (custom FastDDS setups can also be created here).
+  * `ros.namespace`: `(unset)` - Namespace for all topics and transforms.
+
+  The `driver` contains the following keys:
 
   * name: `oak`
   * parent-frame: `oak-d-base-frame`
@@ -27,7 +35,6 @@ description: |
   * ffmpeg-image-transport.encoding: `libx264`
   * ffmpeg-image-transport.preset: `ultrafast`
   * ffmpeg-image-transport.tune: `zerolatency`
-  * namespace: `(unset)`
 
   To set the parameters, use the snap set command, e.g.,
 
@@ -139,70 +146,6 @@ parts:
       - libcanberra-gtk3-module
       - libglu1-mesa
 
-  # ffmpeg:
-  #   plugin: colcon
-  #   source: https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
-  #   # source-branch: v2.9.0-humble
-  #   build-packages:
-  #     - python3-catkin-pkg-modules
-  #     - python3-vcstool
-  #   stage-packages:
-  #     - ros-humble-image-transport
-  #     - ros-humble-image-transport-plugins
-  #     - ffmpeg
-  #     - ros-humble-cv-bridge
-  #     # needed to run ffmpeg without errors:
-  #     - libpulse-dev
-  #     - libblas3
-  #     - libjpeg-turbo8-dev
-  #   override-pull: |
-  #     craftctl default
-  #     cd $CRAFT_PART_SRC
-  #     vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport.repos
-
-
-  # husarion-depthai:
-  #   plugin: colcon
-  #   source: https://github.com/luxonis/depthai-ros.git
-  #   source-branch: v2.9.0-humble
-  #   build-packages:
-  #     - python3-catkin-pkg-modules
-  #     - python3-vcstool
-  #   override-pull: |
-  #     craftctl default
-
-  #     cd $CRAFT_PART_SRC
-
-  #     git clone https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
-  #     vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport/ffmpeg_image_transport.repos
-
-  #     # Set the snap version from the git tag
-  #     # The grade is set to 'stable' if the latest entry in the git history
-  #     # is the tag itself, otherwise set to devel
-  #     version="$(git describe --always --tags| sed -e 's/^v//;s/-/+git/;y/-/./')"
-  #     [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
-  #     craftctl set version="$version"
-  #     craftctl set grade="$grade"
-
-    # build-packages: 
-    #   - python3-vcstool
-    #   - python3-pip
-    #   - python3-colcon-common-extensions
-    #   - python3-rosdep
-    #   - python3-catkin-pkg
-      
-  # ffmpeg:
-  #   plugin: colcon
-  #   source: https://github.com/ros-misc-utilities/ffmpeg_image_transport.git
-  #   build-packages: 
-  #     - python3-vcstool
-  #     - python3-pip
-  #     - python3-colcon-common-extensions
-  #     - python3-rosdep
-  #   override-pull: |
-  #     craftctl default
-
-  #     vcs import $CRAFT_PART_SRC < $CRAFT_PART_SRC/ffmpeg_image_transport.repos
   yq:
     plugin: nil
     override-build: |
@@ -222,7 +165,7 @@ parts:
   # copy local scripts to the snap usr/bin
   local-files-ros:
     plugin: dump
-    source: snap/local/ros_common/
+    source: snap/local/local-ros/
     organize:
       '*.sh': usr/bin/
       '*.xml': usr/share/husarion-depthai/config/
