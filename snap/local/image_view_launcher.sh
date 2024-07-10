@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 # Get the namespace and device namespace from snapctl
 NAMESPACE="$(snapctl get driver.namespace)"
