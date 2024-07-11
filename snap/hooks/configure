@@ -89,7 +89,7 @@ $SNAP/usr/bin/configure_hook_ros.sh
 
 # restart services with new ROS 2 config
 for service in daemon; do
-  if snapctl services ${SNAP_NAME}.${service} | grep -qw active; then
+  if snapctl services ${SNAP_NAME}.${service} | grep -qw enabled; then
     snapctl restart ${SNAP_NAME}.${service}
     log "Restarted ${SNAP_NAME}.${service}"
   fi

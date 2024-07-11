@@ -169,6 +169,7 @@ parts:
     organize:
       '*.sh': usr/bin/
       '*.xml': usr/share/husarion-depthai/config/
+      'ros.env': usr/share/husarion-depthai/config/
 
   local-files:
     plugin: dump

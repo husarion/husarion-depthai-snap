@@ -1,11 +1,7 @@
 #!/bin/bash -e
 
-# Define a function to log messages
-log() {
-  local message="$1"
-  # Log the message with logger
-  logger -t "${SNAP_NAME}" "install hook: $message"
-}
+# Define a function to log and echo messages
+source $SNAP/usr/bin/utils.sh
 
 $SNAP/usr/bin/install_hook_ros.sh
 
@@ -29,7 +25,7 @@ if ! snapctl is-connected raw-usb; then
 fi
 
 # copy params
-cp -r $SNAP/usr/share/husarion-depthai/config/*.yaml ${SNAP_COMMON}/
+cp -r ${SNAP}/usr/share/${SNAP_NAME}/config/*.yaml ${SNAP_COMMON}/
 
 # # # copy meshes to shared folder
 # log "copy meshes to '${SNAP_COMMON}/ros2_ws/'"
