@@ -17,7 +17,7 @@ description: |
 
   * `ros.domain-id`: `0` - Sets the `ROS_DOMAIN_ID` environment variable for the ROS driver.
   * `ros.localhost-only`: `0` - Sets the `ROS_LOCALHOST_ONLY` environment variable for the ROS driver.
-  * `ros.transport`: `udp` - Configures DDS transport. Options are `udp`, `shm`, `builtin` (or `rmw_fastrtps_cpp`), `rmw_cyclonedds_cpp`. Corresponding DDS XML files can be found in the `/var/snap/rosbot-xl/common` directory (custom FastDDS setups can also be created here).
+  * `ros.transport`: `udp` - Configures DDS transport. Options are `udp`, `shm`, `builtin` (or `rmw_fastrtps_cpp`), `rmw_cyclonedds_cpp`. Corresponding DDS XML files can be found in the `/var/snap/husarion-depthai/common` directory (custom FastDDS setups can also be created here).
   * `ros.namespace`: `(unset)` - Namespace for all topics and transforms.
 
   The `driver` contains the following keys:
