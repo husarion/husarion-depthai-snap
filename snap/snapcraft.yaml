@@ -146,31 +146,6 @@ parts:
       - libcanberra-gtk3-module
       - libglu1-mesa
 
-  yq:
-    plugin: nil
-    override-build: |
-      craftctl default
-
-      YQ_VERSION="v4.35.1"
-      TARGETARCH=$CRAFT_ARCH_BUILD_FOR
-      curl -L "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${TARGETARCH}" -o $CRAFT_PART_BUILD/yq
-    override-prime: |
-      craftctl default
-    
-      cp $CRAFT_PART_BUILD/yq $CRAFT_PRIME/usr/bin/yq
-      chmod +x $CRAFT_PRIME/usr/bin/yq
-    build-packages:
-      - curl
-
-  # copy local scripts to the snap usr/bin
-  local-files-ros:
-    plugin: dump
-    source: snap/local/local-ros/
-    organize:
-      '*.sh': usr/bin/
-      '*.xml': usr/share/husarion-depthai/config/
-      'ros.env': usr/share/husarion-depthai/config/
-
   local-files:
     plugin: dump
     source: snap/local/
@@ -180,3 +155,25 @@ parts:
       '*.yaml': usr/share/husarion-depthai/config/
       # '*.xml': usr/share/husarion-depthai/config/
       # '*.json': usr/share/husarion-depthai/config/
+
+  husarion-snap-common:
+    plugin: dump
+    source: https://github.com/husarion/husarion-snap-common
+    source-branch: "0.3.0"
+    source-type: git
+    build-environment:
+      - YQ_VERSION: "v4.35.1"
+    build-packages:
+      - curl
+    organize:
+      'local-ros/*.sh': usr/bin/
+      'local-ros/*.xml': usr/share/husarion-snap-common/config/
+      'local-ros/ros.env': usr/share/husarion-snap-common/config/
+    override-build: |
+      craftctl default
+      curl -L "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${CRAFT_ARCH_BUILD_FOR}" -o $CRAFT_PART_BUILD/yq
+    override-prime: |
+      craftctl default
+      cp $CRAFT_PART_BUILD/yq $CRAFT_PRIME/usr/bin/yq
+      chmod +x $CRAFT_PRIME/usr/bin/yq
+      rm -rf $CRAFT_PRIME/local-ros

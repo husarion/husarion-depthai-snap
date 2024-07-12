@@ -1,6 +1,13 @@
 # husarion-depthai-snap
 
+<p align="center">
+  <img src="snap/gui/icon.png" width="150px">
+</p>
+
 Snap for OAK-x cameras customized for Husarion robots
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/husarion-depthai)
+
 
 ## Apps
 
@@ -129,7 +136,7 @@ The default `depthai_params.yaml` file content:
 
 ```
 
-To set a new params create a copy of the `astra-params.yaml` file:
+To set a new params create a copy of the `depthai_params.yaml` file:
 
 ```bash
 sudo cp \
@@ -148,3 +155,5 @@ And set the new path to the config file:
 ```bash
 sudo snap set husarion-depthai driver.params-file=/var/snap/husarion-depthai/common/depthai_params2.yaml
 ```
+
+List of all available parameters for OAK-x cameras is [here](https://docs.luxonis.com/software/ros/depthai-ros/driver/)
