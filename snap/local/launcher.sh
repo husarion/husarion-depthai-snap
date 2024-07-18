@@ -15,7 +15,7 @@ OPTIONS=(
   cam-roll
   cam-pitch
   cam-yaw
-  params-file
+  # params-file
 )
 
 LAUNCH_OPTIONS=""
@@ -28,9 +28,21 @@ for OPTION in "${OPTIONS[@]}"; do
   fi
 done
 
+# Check if ros.namespace is set and not empty
+ROS_NAMESPACE="$(snapctl get ros.namespace)"
+if [ -n "${ROS_NAMESPACE}" ]; then
+    LAUNCH_OPTIONS+="namespace:=${ROS_NAMESPACE} "
+fi
+
+CAMERA_PARAMS="$(snapctl get driver.camera-params)"
+LAUNCH_OPTIONS+="params_file:=${SNAP_COMMON}/camera-params-${CAMERA_PARAMS}.yaml "
+
+FFMPEG_PARAMS="$(snapctl get driver.ffmpeg-params)"
+LAUNCH_OPTIONS+="ffmpeg_params_file:=${SNAP_COMMON}/ffmpeg-params-${FFMPEG_PARAMS}.yaml "
+
 if [ "${LAUNCH_OPTIONS}" ]; then
-  # watch the log with: "journalctl -t husarion-depthai"
+  # watch the log with: "journalctl -t husarion-astra"
   log_and_echo "Running with options: ${LAUNCH_OPTIONS}"
 fi
 
-ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS} ffmpeg_params_file:=$SNAP_COMMON/ffmpeg_params.yaml
+ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS}

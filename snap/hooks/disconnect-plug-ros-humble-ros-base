@@ -1,4 +1,0 @@
-#!/bin/bash -e
-
-logger -t ${SNAP_NAME} "Plug 'ros-humble-ros-base' disconnected"
-snapctl stop --disable ${SNAP_NAME}.daemon 2>&1 || true

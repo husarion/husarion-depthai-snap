@@ -14,10 +14,8 @@ snapctl set driver.cam-pos-z=0.0
 snapctl set driver.cam-roll=0.0
 snapctl set driver.cam-pitch=0.0
 snapctl set driver.cam-yaw=0.0
-snapctl set driver.params-file=$SNAP_COMMON/depthai_params.yaml
-snapctl set driver.ffmpeg-image-transport.encoding=libx264
-snapctl set driver.ffmpeg-image-transport.preset=ultrafast
-snapctl set driver.ffmpeg-image-transport.tune=zerolatency
+snapctl set driver.camera-params=default
+snapctl set driver.ffmpeg-params=default
 
 if ! snapctl is-connected raw-usb; then
   log "Plug 'raw-usb' isn't connected, please run:"

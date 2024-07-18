@@ -19,26 +19,19 @@ VALID_DRIVER_KEYS=(
   "cam-roll"
   "cam-pitch"
   "cam-yaw"
-  "params-file"
-  "ffmpeg-image-transport"
-)
-
-VALID_FFMPEG_IMAGE_TRANSPORT_KEYS=(
-  "encoding"
-  "preset"
-  "tune"
+  "camera-params"
+  "ffmpeg-params"
 )
 
 # common
 
 validate_keys "driver" VALID_DRIVER_KEYS[@]
-validate_keys "driver.ffmpeg-image-transport" VALID_FFMPEG_IMAGE_TRANSPORT_KEYS[@]
 
 # validate driver.name
-validate_regex "driver.name" '^[a-z_-]{1,10}$' "Possible values are text with a maximum length of 10 characters, containing only lowercase letters (a-z), "-" or '_'."
+validate_regex "driver.name" '^[a-z_-]{1,10}$'
 
 # validate driver.parent-frame
-validate_regex "driver.parent-frame" '^[a-z_-]{1,40}$' "Possible values are text with a maximum length of 40 characters, containing only lowercase letters (a-z), "-" or '_'."
+validate_regex "driver.parent-frame" '^[a-z_-]{1,40}$'
 
 # validate driver.camera-model
 VALID_CAMERA_MODEL_OPTIONS=("OAK-D" "OAK-D-LITE")
@@ -52,38 +45,13 @@ validate_float "driver.cam-roll"
 validate_float "driver.cam-pitch"
 validate_float "driver.cam-yaw"
 
-# validate driver.params-file
-validate_path "driver.params-file"
+# export LD_LIBRARY_PATH=$SNAP/usr/lib/$(uname -m)-linux-gnu/pulseaudio:$SNAP/usr/lib/$(uname -m)-linux-gnu/blas:$SNAP/usr/lib/$(uname -m)-linux-gnu/lapack:$LD_LIBRARY_PATH
 
-export LD_LIBRARY_PATH=$SNAP/usr/lib/$(uname -m)-linux-gnu/pulseaudio:$SNAP/usr/lib/$(uname -m)-linux-gnu/blas:$SNAP/usr/lib/$(uname -m)-linux-gnu/lapack:$LD_LIBRARY_PATH
+# validate driver.camera-params
+validate_config_param "driver.camera-params" "camera-params-VALUE.yaml"
 
-export FFMPEG_ENCODING=$(snapctl get driver.ffmpeg-image-transport.encoding)
-
-# Check if FFMPEG_ENCODING is set
-if [ -n "$FFMPEG_ENCODING" ]; then
-  # Run ffmpeg -codecs and check if the codec is available
-  if ! ffmpeg -encoders 2>/dev/null | awk '{print $2}' | grep -q "$FFMPEG_ENCODING"; then
-    log_and_echo "Error: Codec $FFMPEG_ENCODING is not available:"
-    log_and_echo "Find available codecs here: $SNAP_COMMON/ffmpeg_codecs.txt"
-    ffmpeg -encoders 2>/dev/null | awk '/^ V/ {print $0}' > $SNAP_COMMON/ffmpeg_codecs.txt
-    exit 1
-  fi
-
-  cp $SNAP_COMMON/ffmpeg_params_template.yaml $SNAP_COMMON/ffmpeg_params.yaml
-  yq -i './**.ros__parameters.ffmpeg_image_transport = {}' $SNAP_COMMON/ffmpeg_params.yaml
-
-  # Get all options in JSON format
-  OPTIONS=$(snapctl get driver.ffmpeg-image-transport)
-  keys=$(echo $OPTIONS | yq '. | to_entries | .[].key')
-  for key in $keys; do
-    export FFMPEG_KEY=$key
-    export FFMPEG_VALUE=$(snapctl get driver.ffmpeg-image-transport.$FFMPEG_KEY)
-    yq -i './**.ros__parameters.ffmpeg_image_transport += {env(FFMPEG_KEY): env(FFMPEG_VALUE)}' $SNAP_COMMON/ffmpeg_params.yaml
-  done
-else
-  cp $SNAP_COMMON/ffmpeg_params_template.yaml $SNAP_COMMON/ffmpeg_params.yaml
-  yq -i './**.ros__parameters.ffmpeg_image_transport = {}' $SNAP_COMMON/ffmpeg_params.yaml
-fi
+# validate driver.ffmpeg-params
+validate_config_param "driver.ffmpeg-params" "ffmpeg-params-VALUE.yaml"
 
 $SNAP/usr/bin/configure_hook_ros.sh
 

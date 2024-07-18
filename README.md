@@ -16,42 +16,16 @@ Snap for OAK-x cameras customized for Husarion robots
 | `husarion-depthai.start` | Start the `husarion-depthai.daemon` service |
 | `husarion-depthai.stop` | Stop the `husarion-depthai.daemon` service |
 | `husarion-depthai` | Start the application in the foreground (run in the current terminal). Remember to stop the daemon first |
-| `husarion-depthai.image-view` | Preview the image from the camera |
 
-## Setup FFMPEG
+## Setup Camera Params
 
-The default values for `ffmpeg-image-transport` are:
-
-```bash
-$ sudo snap get husarion-depthai driver.ffmpeg-image-transport
-Key                                     Value
-driver.ffmpeg-image-transport.encoding  libx264
-driver.ffmpeg-image-transport.preset    ultrafast
-driver.ffmpeg-image-transport.tune      zerolatency
-```
-
-to check available options run:
+The default config parameters for camera node are selected with:
 
 ```bash
-ffmpeg -encoders
+$ sudo snap set husarion-depthai driver.camera-config=default
 ```
 
-find the list of available presets by running
-
-```bash
-ffmpeg -h encoder=$SELECTED_ENCODER`
-```
-
-## Setup Astra Params
-
-Default astra params are stored in the following file:
-
-```bash
-$ sudo snap get husarion-depthai driver.params-file
-/var/snap/husarion-depthai/common/depthai_params.yaml
-```
-
-The default `depthai_params.yaml` file content:
+The default config is get from: `/var/snap/husarion-depthai/common/camera-config-default.yaml` file:
 
 ```yaml
 ---
@@ -111,6 +85,12 @@ The default `depthai_params.yaml` file content:
       i_low_bandwidth: true #false
       i_low_bandwidth_quality: 20
       i_max_q_size: 30
+      # i_width: 1280 #valid if i_output_isp: false
+      # i_height: 720 #valid if i_output_isp: false
+      # i_interleaved: false
+      # scaling 1920x1080 1:3 to 640x360
+      # https://docs-beta.luxonis.com/develop/ros/depthai-ros-driver#Available%20sensors%20and%20their%20resolutions%3A
+      # IMX378, 1080P is 1920x1080, i_isp_den=3 and i_isp_num=2 will give 1280x720 (/16=)
       i_output_isp: true
       i_preview_height: 300
       i_preview_size: 300
@@ -136,24 +116,78 @@ The default `depthai_params.yaml` file content:
 
 ```
 
-To set a new params create a copy of the `depthai_params.yaml` file:
+You can create your own config file: `/var/snap/husarion-depthai/common/camera-config-<MY_NAME>.yaml`:
 
 ```bash
 sudo cp \
-/var/snap/husarion-depthai/common/depthai_params.yaml \
-/var/snap/husarion-depthai/common/depthai_params2.yaml
+/var/snap/husarion-depthai/camera-config-default.yaml \
+/var/snap/husarion-depthai/camera-config-myconfig.yaml
 ```
 
-Modify the content of the `astra-params2.yaml` file, eg:
+Modify the content of the `camera-config-myconfig.yaml` file, eg:
 
 ```bash
-sudo vim /var/snap/husarion-depthai/common/depthai_params2.yaml
+sudo vim /var/snap/depthai-camera/common/camera-config-myconfig.yaml
 ```
 
 And set the new path to the config file:
 
 ```bash
-sudo snap set husarion-depthai driver.params-file=/var/snap/husarion-depthai/common/depthai_params2.yaml
+sudo snap set depthai-camera driver.camera-params=myconfig
 ```
 
-List of all available parameters for OAK-x cameras is [here](https://docs.luxonis.com/software/ros/depthai-ros/driver/)
+## Setup FFMPEG Params
+
+The default values for `ffmpeg-image-transport` are:
+
+```bash
+$ sudo snap set husarion-depthai driver.ffmpeg-config=default
+```
+
+The default config is get from: `/var/snap/husarion-depthai/common/ffmpeg-config-default.yaml` file:
+
+```yaml
+---
+/**:
+  ros__parameters:
+    ffmpeg_image_transport:
+
+      # find the list of available encoders by running `ffmpeg -encoders`
+      encoding: libx264
+      
+      # find the list of available presets by running `ffmpeg -h encoder=libx264`
+      preset: ultrafast
+      tune: zerolatency
+```
+
+You can create your own config file: `/var/snap/husarion-depthai/common/ffmpeg-config-<MY_NAME>.yaml`:
+
+```bash
+sudo cp \
+/var/snap/husarion-depthai/ffmpeg-config-default.yaml \
+/var/snap/husarion-depthai/ffmpeg-config-myconfig.yaml
+```
+
+Modify the content of the `ffmpeg-config-myconfig.yaml` file, eg:
+
+```bash
+sudo vim /var/snap/husarion-depthai/common/ffmpeg-config-myconfig.yaml
+```
+
+And set the new path to the config file:
+
+```bash
+sudo snap set husarion-depthai driver.ffmpeg-params=myconfig
+```
+
+To check available options run:
+
+```bash
+ffmpeg -encoders
+```
+
+find the list of available presets by running
+
+```bash
+ffmpeg -h encoder=$SELECTED_ENCODER`
+```

@@ -1,0 +1,73 @@
+name: Build snap
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ros_distro: humble
+          - ros_distro: jazzy
+
+    # outputs:
+    #   snap-file: ${{ steps.build-snap.outputs.snap }}
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-tags: true
+
+    - name: Render snapcraft.yaml
+      run: |
+        pip install jinja2
+        export ROS_DISTRO=${{ matrix.ros_distro }}
+        ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
+
+    - name: Build snap
+      uses: snapcore/action-build@v1
+      with:
+        snapcraft-channel: latest/edge
+      id: build-snap
+      env:
+        SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS: 1
+
+    - name: Make sure the snap is installable
+      run: |
+        sudo snap install --dangerous ${{ steps.build-snap.outputs.snap }}
+
+    # # Save snap for subsequent job(s)
+    # - uses: actions/upload-artifact@v3
+    #   with:
+    #     name: husarion-camera-snap
+    #     path: ${{ steps.build-snap.outputs.snap }}
+
+  # publish:
+  #   if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+  #   needs: build
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+
+  #   # Retrieve the snap
+  #   - uses: actions/download-artifact@v3
+  #     with:
+  #       name: husarion-camera-snap
+  #       path: .
+
+  #   # Publish the snap on the store
+  #   # by default on 'edge' but on 'candidate' for tags
+  #   - uses: snapcore/action-publish@v1
+  #     env:
+  #       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+  #     with:
+  #       snap: ${{needs.build.outputs.snap-file}}
+  #       release: ${{ startsWith(github.ref, 'refs/tags/') && '${{ matrix.ros_distro }}/candidate' || '${{ matrix.ros_distro }}/edge'}}

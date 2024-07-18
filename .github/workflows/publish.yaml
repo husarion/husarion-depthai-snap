@@ -1,0 +1,54 @@
+name: Build and publish snap
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ros_distro: humble
+          - ros_distro: jazzy
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-tags: true
+
+    - name: Render snapcraft.yaml
+      run: |
+        pip install jinja2
+        export ROS_DISTRO=${{ matrix.ros_distro }}
+        ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
+
+    - name: Build snap
+      uses: snapcore/action-build@v1
+      with:
+        snapcraft-channel: latest/edge
+      id: build-snap
+      env:
+        SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS: 1
+
+    - name: Make sure the snap is installable
+      run: |
+        sudo snap install --dangerous ${{ steps.build-snap.outputs.snap }}
+
+    # Publish the snap on the store
+    # by default on 'edge' but on 'candidate' for tags
+    - name: Publish snap
+      uses: snapcore/action-publish@v1
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+      with:
+        snap: ${{ steps.build-snap.outputs.snap }}
+        release: ${{ matrix.ros_distro }}/${{ startsWith(github.ref, 'refs/tags/') && 'candidate' || 'edge' }}

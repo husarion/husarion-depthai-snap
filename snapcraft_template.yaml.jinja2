@@ -40,7 +40,7 @@ description: |
 
 grade: stable
 confinement: strict
-base: core22
+base: {{ 'core22' if ros_distro == 'humble' else 'core24' }}
 
 contact: https://github.com/husarion/depthai-snap/issues
 issues: https://github.com/husarion/depthai-snap/issues
@@ -76,7 +76,7 @@ apps:
     install-mode: enable
     plugs: [network, network-bind, shm-plug, raw-usb]
     slots: [shm-slot]
-    extensions: [ros2-humble-ros-base]
+    extensions: [ros2-{{ ros_distro }}-ros-base]
 
   husarion-depthai:
     command: usr/bin/launcher.sh
@@ -85,7 +85,7 @@ apps:
     # plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
     # block-devices, 
     slots: [shm-slot]
-    extensions: [ros2-humble-ros-base]
+    extensions: [ros2-{{ ros_distro }}-ros-base]
 
   start:
     command: usr/bin/start_launcher.sh
@@ -101,20 +101,20 @@ parts:
   husarion-depthai:
     plugin: nil
     stage-packages:
-      - ros-humble-depthai-ros
-      - ros-humble-image-transport
-      - ros-humble-image-transport-plugins
+      - ros-{{ ros_distro }}-depthai-ros
+      - ros-{{ ros_distro }}-image-transport
+      - ros-{{ ros_distro }}-image-transport-plugins
       # https://index.ros.org/p/ffmpeg_image_transport/github-ros-misc-utilities-ffmpeg_image_transport/#humble
-      - ros-humble-ffmpeg-image-transport
+      - ros-{{ ros_distro }}-ffmpeg-image-transport
       - ffmpeg
-      - ros-humble-cv-bridge
+      - ros-{{ ros_distro }}-cv-bridge
       # needed to run ffmpeg without errors:
       - libpulse-dev
       - libblas3
       - libjpeg-turbo8-dev
     override-stage: |
       craftctl default
-      version="$(apt-cache policy ros-humble-depthai-ros-driver | grep Candidate | awk '{print $2}')"
+      version="$(apt-cache policy ros-{{ ros_distro }}-depthai-ros-driver | grep Candidate | awk '{print $2}')"
       craftctl set version="$version"
       craftctl set grade="stable"
 
