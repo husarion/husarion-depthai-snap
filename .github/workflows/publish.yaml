@@ -16,7 +16,13 @@ jobs:
       matrix:
         include:
           - ros_distro: humble
+            runner: ubuntu-latest
           - ros_distro: jazzy
+            runner: ubuntu-latest
+          - ros_distro: humble
+            runner: ubuntu-24.04-arm64
+          - ros_distro: jazzy
+            runner: ubuntu-24.04-arm64
 
     steps:
 
@@ -27,7 +33,8 @@ jobs:
 
     - name: Render snapcraft.yaml
       run: |
-        pip install jinja2
+        sudo apt update 
+        sudo apt install python3-jinja2
         export ROS_DISTRO=${{ matrix.ros_distro }}
         ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
 

@@ -40,7 +40,7 @@ description: |
 
 grade: stable
 confinement: strict
-base: core22
+base: core24
 
 contact: https://github.com/husarion/depthai-snap/issues
 issues: https://github.com/husarion/depthai-snap/issues
@@ -50,22 +50,12 @@ slots:
   shm-slot:
     interface: shared-memory
     write: ['*'] # paths are relative to /dev/shm
-  # c189-slot:
-  #   interface: custom-device
-  #   custom-device: c189
-  #   files:
-  #     write:
-  #       - /run/udev/data/c189:*
 
 plugs:
   shm-plug:
     interface: shared-memory
     shared-memory: shm-slot
     private: false
-
-  # c189-plug:
-  #   interface: custom-device
-  #   custom-device: c189
 
 apps:
 
@@ -76,7 +66,7 @@ apps:
     install-mode: enable
     plugs: [network, network-bind, shm-plug, raw-usb]
     slots: [shm-slot]
-    extensions: [ros2-humble-ros-base]
+    extensions: [ros2-jazzy-ros-base]
 
   husarion-depthai:
     command: usr/bin/launcher.sh
@@ -85,7 +75,7 @@ apps:
     # plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
     # block-devices, 
     slots: [shm-slot]
-    extensions: [ros2-humble-ros-base]
+    extensions: [ros2-jazzy-ros-base]
 
   start:
     command: usr/bin/start_launcher.sh
@@ -99,24 +89,35 @@ apps:
 parts:
 
   husarion-depthai:
-    plugin: nil
-    stage-packages:
-      - ros-humble-depthai-ros
-      - ros-humble-image-transport
-      - ros-humble-image-transport-plugins
+    plugin: colcon
+    source: https://github.com/luxonis/depthai-ros.git
+    source-branch: jazzy
+    build-packages: 
+      - python3-vcstool
+    stage-packages: 
+      - ros-jazzy-image-transport
+      - ros-jazzy-image-transport-plugins
       # https://index.ros.org/p/ffmpeg_image_transport/github-ros-misc-utilities-ffmpeg_image_transport/#humble
-      - ros-humble-ffmpeg-image-transport
+      - ros-jazzy-ffmpeg-image-transport
       - ffmpeg
-      - ros-humble-cv-bridge
+      - ros-jazzy-cv-bridge
       # needed to run ffmpeg without errors:
       - libpulse-dev
       - libblas3
       - libjpeg-turbo8-dev
-    override-stage: |
+      - ros-jazzy-rmw-cyclonedds-cpp
+    override-pull: |
       craftctl default
-      version="$(apt-cache policy ros-humble-depthai-ros-driver | grep Candidate | awk '{print $2}')"
+
+      # Set the snap version from the git tag
+      # The grade is set to 'stable' if the latest entry in the git history
+      # is the tag itself, otherwise set to devel
+      version="$(git describe --always --tags| sed -e 's/^v//;s/-/+git/;y/-/./')"
+      [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
       craftctl set version="$version"
-      craftctl set grade="stable"
+      craftctl set grade="$grade"
+
+  
 
   local-files:
     plugin: dump

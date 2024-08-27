@@ -60,7 +60,9 @@ iterate target="humble":
     fi
 
     snapcraft clean
+    sudo rm -rf snap/snapcraft.yaml
     ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
+    chmod 444 snap/snapcraft.yaml
     snapcraft
     
     unsquashfs husarion-depthai*.snap
