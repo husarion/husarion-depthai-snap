@@ -8,7 +8,6 @@ Snap for OAK-x cameras customized for Husarion robots
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/husarion-depthai)
 
-
 ## Apps
 
 | app | description |
