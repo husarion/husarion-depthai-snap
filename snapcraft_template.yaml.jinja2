@@ -115,7 +115,7 @@ parts:
       version="$(git describe --always --tags| sed -e 's/^v//;s/-/+git/;y/-/./')"
       [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
       craftctl set version="$version"
-      craftctl set grade="$grade"
+      craftctl set grade="stable"
 
   {#
     # uncomment when depthai-ros package for jazzy is available here: https://index.ros.org/search/?term=depthai
