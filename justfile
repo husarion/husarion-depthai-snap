@@ -39,7 +39,7 @@ clean:
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
     snapcraft clean   
 
-iterate target="humble":
+iterate target="jazzy":
     #!/bin/bash
     start_time=$(date +%s)
     
@@ -83,7 +83,7 @@ iterate target="humble":
 
 swap-enable:
     #!/bin/bash
-    sudo fallocate -l 3G /swapfile
+    sudo fallocate -l 2G /swapfile
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
     sudo swapon /swapfile
@@ -114,4 +114,22 @@ publish:
     #!/bin/bash
     export SNAPCRAFT_STORE_CREDENTIALS=$(cat exported.txt)
     snapcraft login
-    snapcraft upload --release edge husarion-astra*.snap
+    snapcraft upload --release edge husarion-depthai*.snap
+
+list-lxd-cache:
+    #!/bin/bash
+    sudo du -h --max-depth=1 /var/snap/lxd/common/lxd/storage-pools/default/containers/ | sort -h
+
+remove-lxd-cache:
+    #!/bin/bash
+    lxc project switch snapcraft
+
+    for container in $(lxc list --format csv -c n); do
+        lxc delete $container --force
+    done
+
+    echo "verify:"
+    sudo du -h --max-depth=1 /var/snap/lxd/common/lxd/storage-pools/default/containers/
+    df -h
+
+    lxc project switch default

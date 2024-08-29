@@ -71,9 +71,7 @@ apps:
   husarion-depthai:
     command: usr/bin/launcher.sh
     command-chain: [usr/bin/check_daemon_running.sh, usr/bin/ros_setup.sh]
-    plugs: [network, network-bind, shm-plug, raw-usb]
-    # plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
-    # block-devices, 
+    plugs: [network, network-bind, shm-plug, raw-usb, hardware-observe]
     slots: [shm-slot]
     extensions: [ros2-{{ ros_distro }}-ros-base]
 

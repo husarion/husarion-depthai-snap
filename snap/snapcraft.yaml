@@ -51,11 +51,22 @@ slots:
     interface: shared-memory
     write: ['*'] # paths are relative to /dev/shm
 
+  c189-slot:
+    interface: custom-device
+    custom-device: c189
+    files:
+      write:
+        - /run/udev/data/c189:*
+
 plugs:
   shm-plug:
     interface: shared-memory
     shared-memory: shm-slot
     private: false
+
+  c189-plug:
+    interface: custom-device
+    custom-device: c189
 
 apps:
 
@@ -71,8 +82,8 @@ apps:
   husarion-depthai:
     command: usr/bin/launcher.sh
     command-chain: [usr/bin/check_daemon_running.sh, usr/bin/ros_setup.sh]
-    plugs: [network, network-bind, shm-plug, raw-usb]
-    # plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
+    
+    plugs: [network, network-bind, shm-plug, raw-usb, system-observe, hardware-observe, network-control, network-observe, camera, browser-support]
     # block-devices, 
     slots: [shm-slot]
     extensions: [ros2-jazzy-ros-base]
@@ -115,7 +126,7 @@ parts:
       version="$(git describe --always --tags| sed -e 's/^v//;s/-/+git/;y/-/./')"
       [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
       craftctl set version="$version"
-      craftctl set grade="$grade"
+      craftctl set grade="stable"
 
   
 
@@ -150,3 +161,25 @@ parts:
       cp $CRAFT_PART_BUILD/yq $CRAFT_PRIME/usr/bin/yq
       chmod +x $CRAFT_PRIME/usr/bin/yq
       rm -rf $CRAFT_PRIME/local-ros
+
+  fix-execstack:
+    plugin: nil
+    after:
+      - husarion-depthai
+      - local-files
+      - husarion-snap-common
+    build-packages:
+      - execstack
+    override-prime: |
+      set -eu
+      craftctl default
+
+      choosen_files=(
+        usr/lib/x86_64-linux-gnu/libamdhip64.so*
+      )
+
+      for f in "${choosen_files[@]}"; do
+        if [ -f "$f" ]; then
+          execstack -c "$f"
+        fi
+      done
