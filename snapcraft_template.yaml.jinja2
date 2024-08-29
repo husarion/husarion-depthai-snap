@@ -64,7 +64,7 @@ apps:
     command-chain: [usr/bin/ros_setup.sh]
     daemon: simple
     install-mode: enable
-    plugs: [network, network-bind, shm-plug, raw-usb]
+    plugs: [network, network-bind, shm-plug, raw-usb, hardware-observe]
     slots: [shm-slot]
     extensions: [ros2-{{ ros_distro }}-ros-base]
 
