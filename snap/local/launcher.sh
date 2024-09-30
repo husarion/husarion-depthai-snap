@@ -45,4 +45,7 @@ if [ "${LAUNCH_OPTIONS}" ]; then
   log_and_echo "Running with options: ${LAUNCH_OPTIONS}"
 fi
 
+# TODO: workaround for the booting issue: sometimes the snap doesn't work correctly after reboot (only reboot) but logs seems to look fine
+sleep 3
+
 ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS}
