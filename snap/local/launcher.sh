@@ -46,6 +46,6 @@ if [ "${LAUNCH_OPTIONS}" ]; then
 fi
 
 # TODO: workaround for the booting issue: sometimes the snap doesn't work correctly after reboot (only reboot) but logs seems to look fine
-sleep 3
+sleep 7
 
 ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS}
