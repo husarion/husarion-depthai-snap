@@ -162,24 +162,3 @@ parts:
       chmod +x $CRAFT_PRIME/usr/bin/yq
       rm -rf $CRAFT_PRIME/local-ros
 
-  fix-execstack:
-    plugin: nil
-    after:
-      - husarion-depthai
-      - local-files
-      - husarion-snap-common
-    build-packages:
-      - execstack
-    override-prime: |
-      set -eu
-      craftctl default
-
-      choosen_files=(
-        usr/lib/x86_64-linux-gnu/libamdhip64.so*
-      )
-
-      for f in "${choosen_files[@]}"; do
-        if [ -f "$f" ]; then
-          execstack -c "$f"
-        fi
-      done
