@@ -6,7 +6,7 @@ source $SNAP/usr/bin/utils.sh
 $SNAP/usr/bin/install_hook_ros.sh
 
 snapctl set driver.name=oak
-snapctl set driver.parent-frame=oak-d-base-frame
+snapctl set driver.parent-frame=camera_mount_link
 snapctl set driver.camera-model=OAK-D
 snapctl set driver.cam-pos-x=0.0
 snapctl set driver.cam-pos-y=0.0
@@ -24,6 +24,8 @@ fi
 
 # copy params
 cp -r ${SNAP}/usr/share/${SNAP_NAME}/config/*.yaml ${SNAP_COMMON}/
+
+cp -r "$SNAP/usr/bin/post_install.sh" "${SNAP_COMMON}/"
 
 # # # copy meshes to shared folder
 # log "copy meshes to '${SNAP_COMMON}/ros2_ws/'"

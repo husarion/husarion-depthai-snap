@@ -67,8 +67,10 @@ iterate target="jazzy":
     
     unsquashfs husarion-depthai*.snap
     sudo snap try squashfs-root/
-    sudo snap connect husarion-depthai:raw-usb
-    sudo snap connect husarion-depthai:shm-plug husarion-depthai:shm-slot
+    # sudo snap connect husarion-depthai:raw-usb
+    # sudo snap connect husarion-depthai:hardware-observe
+    # sudo snap connect husarion-depthai:shm-plug husarion-depthai:shm-slot
+    sudo /var/snap/husarion-depthai/common/post_install.sh
     sudo husarion-depthai.stop
     # sudo snap connect husarion-depthai:c189-plug rosbot:c189-slot
 
