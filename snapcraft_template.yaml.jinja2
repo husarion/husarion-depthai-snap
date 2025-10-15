@@ -6,6 +6,10 @@ icon: snap/gui/icon.png
 description: |
   The `husarion-depthai` snap contains all the necessary software to bring the OAK-x cameras up.
   
+  **Tip**
+
+  The default camera parameters do not include depth image computation. To enable depth topic transmission, set the parameter to `i_pipeline_type: RGBD`. Path to params file: `/var/snap/husarion-depthai/common/camera-params-default.yaml`
+
   **Parameters**
 
   The snap provides the following configurable parameters (`param name`: `default value`):
