@@ -54,5 +54,7 @@ if [ -n "${STARTUP_DELAY}" ]; then
   echo "[$(date +"%T")] done"
 fi
 
+ros2 daemon stop
+sleep 1
 
 ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS}
