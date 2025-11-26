@@ -21,6 +21,7 @@ VALID_DRIVER_KEYS=(
   "cam-yaw"
   "camera-params"
   "ffmpeg-params"
+  "startup-delay"
 )
 
 # common
@@ -44,6 +45,10 @@ validate_float "driver.cam-pos-z"
 validate_float "driver.cam-roll"
 validate_float "driver.cam-pitch"
 validate_float "driver.cam-yaw"
+
+# Make sure ROS_DOMAIN_ID is valid
+SUPPORTED_RANGE=(0 120)
+validate_number --allow-unset "driver.startup-delay" SUPPORTED_RANGE[@]
 
 # export LD_LIBRARY_PATH=$SNAP/usr/lib/$(uname -m)-linux-gnu/pulseaudio:$SNAP/usr/lib/$(uname -m)-linux-gnu/blas:$SNAP/usr/lib/$(uname -m)-linux-gnu/lapack:$LD_LIBRARY_PATH
 

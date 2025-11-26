@@ -16,6 +16,7 @@ snapctl set driver.cam-pitch=0.0
 snapctl set driver.cam-yaw=0.0
 snapctl set driver.camera-params=default
 snapctl set driver.ffmpeg-params=default
+snapctl set driver.startup-delay=10
 
 if ! snapctl is-connected raw-usb; then
   log "Plug 'raw-usb' isn't connected, please run:"

@@ -46,6 +46,13 @@ if [ "${LAUNCH_OPTIONS}" ]; then
 fi
 
 # TODO: workaround for the booting issue: sometimes the snap doesn't work correctly after reboot (only reboot) but logs seems to look fine
-# sleep 7
+# sleep 
+STARTUP_DELAY="$(snapctl get driver.startup-delay)"
+if [ -n "${STARTUP_DELAY}" ]; then
+  echo "[$(date +"%T")] dummy wait to avoid launch issues after reboot "
+  sleep ${STARTUP_DELAY}
+  echo "[$(date +"%T")] done"
+fi
+
 
 ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS}
