@@ -48,10 +48,19 @@ fi
 # TODO: workaround for the booting issue: sometimes the snap doesn't work correctly after reboot (only reboot) but logs seems to look fine
 # sleep 
 STARTUP_DELAY="$(snapctl get driver.startup-delay)"
+FLAG_FILE="$SNAP_DATA/.startup-delay-done"
 if [ -n "${STARTUP_DELAY}" ]; then
-  echo "[$(date +"%T")] dummy wait to avoid launch issues after reboot "
-  sleep ${STARTUP_DELAY}
-  echo "[$(date +"%T")] done"
+  if [ ! -f "${FLAG_FILE}" ]; then
+    echo "[$(date +"%T")] dummy wait to avoid launch issues after reboot "
+    sleep ${STARTUP_DELAY}
+    echo "[$(date +"%T")] done"
+    # create persistent flag so subsequent restarts skip the delay
+    mkdir -p "$SNAP_DATA" || true
+    echo "done" > "${FLAG_FILE}" || true
+  else
+    echo "[$(date +"%T")] startup delay already applied; skipping"
+    rm -f "${FLAG_FILE}" || true
+  fi
 fi
 
 ros2 daemon stop
