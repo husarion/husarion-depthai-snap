@@ -57,6 +57,7 @@ if [ -n "${STARTUP_DELAY}" ]; then
     # create persistent flag so subsequent restarts skip the delay
     mkdir -p "$SNAP_DATA" || true
     echo "done" > "${FLAG_FILE}" || true
+    exit 0
   else
     echo "[$(date +"%T")] startup delay already applied; skipping"
     rm -f "${FLAG_FILE}" || true
