@@ -121,7 +121,8 @@ just remove-lxd-cache   # free space from snapcraft LXD containers
 ## Pitfalls and constraints
 
 ### `driver.startup-delay` + uptime check (workaround for "1st startup after reboot")
-- Default `10` (seconds). Range `0..120`. Set to `''` or `0` to disable.
+- Default `30` (seconds). Range `0..120`. Set to `''` or `0` to disable.
+- Empirically: 30s is enough for most x86 hosts and RPi5; some slow-booting systems may need 45-60s. If after reboot you see depthai `X_LINK_ERROR` ~20s after "Camera ready", USB stack hasn't stabilized — bump higher.
 - Mechanics ([snap/local/launcher.sh:48-58](snap/local/launcher.sh#L48)):
   - Reads `/proc/uptime` (available under strict confinement without any plug).
   - If uptime < `STARTUP_DELAY + 60s` → treat as "fresh boot" → `sleep ${STARTUP_DELAY}`.
@@ -193,7 +194,7 @@ Every build pulls a fresh `ros-{distro}-depthai-ros` via `apt-cache policy … |
    ```
 3. If an upstream fix is confirmed → remove:
    - the `STARTUP_DELAY` block from [snap/local/launcher.sh](snap/local/launcher.sh)
-   - `snapctl set driver.startup-delay=10` from [snap/hooks/install](snap/hooks/install)
+   - `set_default_if_unset driver.startup-delay 30` from [snap/local/apply_defaults.sh](snap/local/apply_defaults.sh)
    - `"startup-delay"` from `VALID_DRIVER_KEYS` and the `validate_number` call in [snap/hooks/configure](snap/hooks/configure)
    - consider removing `restart-condition: always` from [snapcraft_template.yaml.jinja2](snapcraft_template.yaml.jinja2) (it's an independently healthy daemon property — separate decision)
 4. Update the "Pitfalls → `driver.startup-delay`" section in this file.

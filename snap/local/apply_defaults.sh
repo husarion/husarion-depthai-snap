@@ -22,6 +22,6 @@ set_default_if_unset driver.name oak
 set_default_if_unset driver.camera-model OAK-D-PRO
 set_default_if_unset driver.camera-params default
 set_default_if_unset driver.ffmpeg-params default
-set_default_if_unset driver.startup-delay 10
+set_default_if_unset driver.startup-delay 30
 set_default_if_unset driver.enable-pointcloud false
 set_default_if_unset driver.tf-remap false

@@ -145,7 +145,7 @@ husarion-depthai (snap)
 │   ├── camera-params     = default       # name of camera-params-<NAME>.yaml in $SNAP_DATA
 │   │                                       # bundled: default, oak-1-lite, oak-d-pro, oak-d-pro-poe
 │   ├── ffmpeg-params     = default       # name of ffmpeg-params-<NAME>.yaml in $SNAP_DATA
-│   ├── startup-delay     = 10            # seconds 0-120 (allow-unset); workaround for "1st startup after reboot"
+│   ├── startup-delay     = 30            # seconds 0-120 (allow-unset); workaround for USB cold-start race after reboot
 │   ├── enable-pointcloud = false         # bool; load PointCloudXyzrgbNode + force RGB/stereo sync
 │   └── tf-remap          = false         # bool; remap /tf{,_static} under ros.namespace (no-op when ns empty)
 │

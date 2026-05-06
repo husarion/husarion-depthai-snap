@@ -11,6 +11,18 @@
 
 source $SNAP/usr/bin/utils.sh
 
+# Drop driver.* keys removed in the launcher refactor (parent-frame, cam-pos-*,
+# cam-roll/pitch/yaw, all gated on the dropped publish_tf_from_calibration path).
+# On instances upgraded from older revisions these keys persist in snap config
+# and would fail validate_keys in the configure hook ("not a supported value
+# for 'driver' key"). snapctl unset is a no-op on fresh installs.
+for legacy_key in parent-frame cam-pos-x cam-pos-y cam-pos-z cam-roll cam-pitch cam-yaw; do
+    if [ -n "$(snapctl get "driver.${legacy_key}" 2>/dev/null)" ]; then
+        snapctl unset "driver.${legacy_key}"
+        log "Removed legacy snap config key driver.${legacy_key}"
+    fi
+done
+
 # Migrate any pre-existing user customs from the legacy $SNAP_COMMON location.
 for f in "${SNAP_COMMON}"/camera-params-*.yaml "${SNAP_COMMON}"/ffmpeg-params-*.yaml; do
     [ -f "$f" ] || continue
