@@ -8,7 +8,7 @@ description: |
   
   **Tip**
 
-  The default camera parameters do not include depth image computation. To enable depth topic transmission, set the parameter to `i_pipeline_type: RGBD`. Path to params file: `/var/snap/husarion-depthai/common/camera-params-default.yaml`
+  The default camera parameters do not include depth image computation. To enable depth topic transmission, set the parameter to `i_pipeline_type: RGBD`. Path to params file: `/var/snap/husarion-depthai/current/camera-params-default.yaml`
 
   **Parameters**
 
@@ -26,17 +26,13 @@ description: |
 
   The `driver` contains the following keys:
 
-  * name: `oak`
-  * parent-frame: `oak-d-base-frame`
-  * camera-model: `OAK-D`
-  * cam-pos-x: `0.0`
-  * cam-pos-y: `0.0`
-  * cam-pos-z: `0.0`
-  * cam-roll: `0.0`
-  * cam-pitch: `0.0`
-  * cam-yaw: `0.0`
-  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/common/camera-params-<VALUE>.yaml`
-  * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-camera/common/ffmpeg-params-<VALUE>.yaml`
+  * name: `oak` - ROS 2 node name; also the prefix in published topic paths (`/<ns>/<name>/rgb/...`).
+  * camera-model: `OAK-D-PRO` - one of `OAK-D`, `OAK-D-LITE`, `OAK-1`, `OAK-1-LITE`, `OAK-D-PRO`, `OAK-D-PRO-W`. Used for snap-side validation; the depthai driver autodetects the actual hardware.
+  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`. Bundled presets are refreshed on every `snap refresh`; user-added presets in this directory are preserved.
+  * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-depthai/current/ffmpeg-params-<VALUE>.yaml`
+  * startup-delay: `10` - Seconds to sleep on first launch after a fresh boot (uptime < startup-delay+60s). Set to `0` or `''` to disable. Workaround for depthai-ros startup race.
+  * enable-pointcloud: `false` - Load `depth_image_proc::PointCloudXyzrgbNode` and force RGB/stereo timestamp sync. Requires RGBD pipeline (e.g. `camera-params=oak-d-pro`).
+  * tf-remap: `false` - When `true` and `ros.namespace` is set, remap `/tf` and `/tf_static` to `/<namespace>/tf{,_static}` so the camera's TF tree merges with a namespaced robot tree.
   
   To set the parameters, use the snap set command, e.g.,
 

@@ -10,18 +10,13 @@ source $SNAP/usr/bin/utils.sh
 
 # # Define the top-level key and the list of valid keys
 VALID_DRIVER_KEYS=(
-  "name"         
-  "parent-frame"
+  "name"
   "camera-model"
-  "cam-pos-x"
-  "cam-pos-y"
-  "cam-pos-z"
-  "cam-roll"
-  "cam-pitch"
-  "cam-yaw"
   "camera-params"
   "ffmpeg-params"
   "startup-delay"
+  "enable-pointcloud"
+  "tf-remap"
 )
 
 # common
@@ -31,32 +26,30 @@ validate_keys "driver" VALID_DRIVER_KEYS[@]
 # validate driver.name
 validate_regex "driver.name" '^[a-z_-]{1,10}$'
 
-# validate driver.parent-frame
-validate_regex "driver.parent-frame" '^[a-z_-]{1,40}$'
-
 # validate driver.camera-model
-VALID_CAMERA_MODEL_OPTIONS=("OAK-D" "OAK-D-LITE")
+VALID_CAMERA_MODEL_OPTIONS=("OAK-D" "OAK-D-LITE" "OAK-1" "OAK-1-LITE" "OAK-D-PRO" "OAK-D-PRO-W")
 validate_option "driver.camera-model" VALID_CAMERA_MODEL_OPTIONS[@]
 
-# validate driver.cam-x
-validate_float "driver.cam-pos-x"
-validate_float "driver.cam-pos-y"
-validate_float "driver.cam-pos-z"
-validate_float "driver.cam-roll"
-validate_float "driver.cam-pitch"
-validate_float "driver.cam-yaw"
-
-# Make sure ROS_DOMAIN_ID is valid
 SUPPORTED_RANGE=(0 120)
 validate_number --allow-unset "driver.startup-delay" SUPPORTED_RANGE[@]
 
+VALID_BOOL_OPTIONS=("true" "false")
+validate_option "driver.enable-pointcloud" VALID_BOOL_OPTIONS[@]
+validate_option "driver.tf-remap" VALID_BOOL_OPTIONS[@]
+
 # export LD_LIBRARY_PATH=$SNAP/usr/lib/$(uname -m)-linux-gnu/pulseaudio:$SNAP/usr/lib/$(uname -m)-linux-gnu/blas:$SNAP/usr/lib/$(uname -m)-linux-gnu/lapack:$LD_LIBRARY_PATH
 
-# validate driver.camera-params
-validate_config_param "driver.camera-params" "camera-params-VALUE.yaml"
-
-# validate driver.ffmpeg-params
-validate_config_param "driver.ffmpeg-params" "ffmpeg-params-VALUE.yaml"
+# validate driver.camera-params and driver.ffmpeg-params (live in $SNAP_DATA;
+# validate_config_param from utils.sh hardcodes $SNAP_COMMON, so we check inline)
+for param in camera-params ffmpeg-params; do
+    value=$(snapctl get "driver.${param}")
+    file="${SNAP_DATA}/${param}-${value}.yaml"
+    if [ ! -f "$file" ]; then
+        available=$(ls "${SNAP_DATA}/" 2>/dev/null | grep -oE "${param}-.+\.yaml$" | sed -E "s/^${param}-(.*)\.yaml$/\1/" | tr '\n' ' ')
+        log_and_echo "'${value}' is not a valid value for 'driver.${param}'. There is no '${file}'. Available options: ${available}"
+        exit 1
+    fi
+done
 
 $SNAP/usr/bin/configure_hook_ros.sh
 

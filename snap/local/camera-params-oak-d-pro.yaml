@@ -1,13 +1,12 @@
 ---
-# Preset for OAK-D-PRO PoE: same as oak-d-pro but addressed via IP.
-# Adjust i_ip per deployment (copy this file under camera-params-<name>.yaml in $SNAP_COMMON).
+# Preset for OAK-D-PRO (USB): RGBD + IMU + IR projector + flood LED.
+# For the PoE variant use camera-params-oak-d-pro-poe.yaml (sets i_ip).
 /**:
   ros__parameters:
     camera:
       i_enable_imu: true                    # default: true (explicit — preset relies on it)
       i_enable_ir: true                     # default: true (explicit — preset relies on it)
-      i_floodlight_brightness: 1500         # default: 0
-      i_ip: 10.15.20.6                      # PoE camera address — adjust per deployment
+      i_floodlight_brightness: 1500         # default: 0 (turn flood LED on)
       i_nn_type: none                       # default: spatial
       i_pipeline_type: RGBD                 # default: RGBD (explicit — preset relies on it)
     rgb:

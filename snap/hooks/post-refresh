@@ -1,0 +1,29 @@
+#!/bin/bash -e
+
+# Fired after every `snap refresh` to a new revision. snapd has already copied
+# the previous revision's $SNAP_DATA to the new one, so user custom YAMLs are
+# preserved. We only:
+#   - One-shot migrate legacy user customs from $SNAP_COMMON (where they lived
+#     before the move to $SNAP_DATA). Skip if already present in $SNAP_DATA.
+#   - Re-copy bundled presets from $SNAP into $SNAP_DATA (overwriting the old
+#     bundled versions). Lets us evolve preset schema without leaving stale
+#     copies on hosts.
+
+source $SNAP/usr/bin/utils.sh
+
+# Migrate any pre-existing user customs from the legacy $SNAP_COMMON location.
+for f in "${SNAP_COMMON}"/camera-params-*.yaml "${SNAP_COMMON}"/ffmpeg-params-*.yaml; do
+    [ -f "$f" ] || continue
+    target="${SNAP_DATA}/$(basename "$f")"
+    if [ ! -f "$target" ]; then
+        cp "$f" "$target"
+        log "Migrated user preset $(basename "$f") from \$SNAP_COMMON to \$SNAP_DATA"
+    fi
+done
+
+# Always overwrite bundled presets with the version shipped in this revision.
+cp "${SNAP}/usr/share/${SNAP_NAME}/config"/*.yaml "${SNAP_DATA}/"
+
+# Apply defaults for driver.* params added in this revision (idempotent —
+# existing user-set values are preserved).
+$SNAP/usr/bin/apply_defaults.sh

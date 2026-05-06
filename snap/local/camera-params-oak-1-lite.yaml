@@ -1,0 +1,18 @@
+---
+# Preset for OAK-1-LITE: single RGB sensor (IMX214), no stereo, no IMU, no IR.
+# Pipeline RGB is the only valid choice — enabling RGBD/IMU/IR fails at driver init.
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: false                   # default: true (no IMU on OAK-1-LITE)
+      i_enable_ir: false                    # default: true (no IR on OAK-1-LITE)
+      i_nn_type: none                       # default: spatial
+      i_pipeline_type: RGB                  # default: RGBD (single-sensor: must be RGB)
+    rgb:
+      i_enable_lazy_publisher: false        # default: true
+      i_fps: 20.0                           # default: 30.0
+      i_isp_den: 5                          # default: 3 (ISP scales 1080P by 2/5 → 768x432)
+      i_low_bandwidth: true                 # default: false
+      i_low_bandwidth_quality: 20           # default: 50
+      i_resolution: '1080P'
+      i_set_isp_scale: true
