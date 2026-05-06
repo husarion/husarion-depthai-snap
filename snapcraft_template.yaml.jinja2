@@ -153,6 +153,21 @@ parts:
       set -eu
       craftctl default
 
+      # Ubuntu Noble universe ships libamdhip64-5 (5.7.1-3, verified 2026-05) with
+      # PT_GNU_STACK=RWE — the binary requests an executable stack. Snap strict
+      # confinement (apparmor) refuses dlopen on such libs, so the daemon would
+      # crash on first use of OpenCV/cv-bridge/ffmpeg paths that pull HIP transitively.
+      # `execstack -c` clears the X bit (post-fix flags become RW), letting the
+      # library load under strict confinement.
+      #
+      # Verify before bumping ros-{distro}-depthai-ros:
+      #   apt-get download libamdhip64-5 && dpkg -x libamdhip64-5*.deb /tmp/x
+      #   readelf -l /tmp/x/usr/lib/x86_64-linux-gnu/libamdhip64.so.5 | grep GNU_STACK
+      # If RW upstream → this whole part can be removed. Until then, required.
+      #
+      # Scope: only libamdhip64.so* needs the fix; no other staged .so has execstack
+      # ON in current builds (re-scan with `readelf -l <so> | grep GNU_STACK`).
+      # On arm64 the path doesn't exist (HIP isn't packaged for arm64) — loop is a no-op.
       choosen_files=(
         usr/lib/x86_64-linux-gnu/libamdhip64.so*
       )
