@@ -11,9 +11,13 @@
       i_pipeline_type: RGBD                 # default: RGBD (explicit — preset relies on it)
     rgb:
       i_enable_lazy_publisher: false        # default: true
-      i_fps: 20.0                           # default: 30.0
-      i_isp_den: 5                          # default: 3 (ISP scales 1080P by 2/5 → 768x432)
-      i_low_bandwidth: true                 # default: false
-      i_low_bandwidth_quality: 20           # default: 50
-      i_resolution: '1080P'
-      i_set_isp_scale: true
+      i_fps: 30.0                           # default: 30.0
+      # USB preset: low_bandwidth off — single encoding pass via ffmpeg_image_transport.
+      i_low_bandwidth: false                # default: false (explicit for clarity)
+      i_low_bandwidth_quality: 50           # default: 50 (irrelevant when low_bandwidth=false)
+      i_max_q_size: 4                       # default: 30; smaller queue = lower latency for control loops
+      i_resolution: '1080P'                 # explicit; ISP default scaling → 1280x720
+    stereo:
+      i_align_depth: true                   # default: false; align depth to RGB optical center (RGBD pointcloud accuracy)
+      i_lr_check: true                      # default: false; left-right consistency filter (removes outlier disparity)
+      i_subpixel: true                      # default: false; subpixel interpolation for smoother depth (better SLAM/VIO)

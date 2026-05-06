@@ -12,9 +12,14 @@
       i_pipeline_type: RGBD                 # default: RGBD (explicit — preset relies on it)
     rgb:
       i_enable_lazy_publisher: false        # default: true
-      i_fps: 20.0                           # default: 30.0
-      i_isp_den: 5                          # default: 3 (ISP scales 1080P by 2/5 → 768x432)
+      i_fps: 30.0                           # default: 30.0
+      # PoE preset: keep MJPEG on-camera encoding (Ethernet bandwidth-limited).
+      # Quality 50 is the driver default; lower values (e.g. 20) cause banding/posterization.
       i_low_bandwidth: true                 # default: false
-      i_low_bandwidth_quality: 20           # default: 50
-      i_resolution: '1080P'
-      i_set_isp_scale: true
+      i_low_bandwidth_quality: 50           # default: 50
+      i_max_q_size: 4                       # default: 30; smaller queue = lower latency for control loops
+      i_resolution: '1080P'                 # explicit; ISP default scaling → 1280x720
+    stereo:
+      i_align_depth: true                   # default: false; align depth to RGB optical center
+      i_lr_check: true                      # default: false; left-right consistency filter
+      i_subpixel: true                      # default: false; subpixel interpolation for smoother depth

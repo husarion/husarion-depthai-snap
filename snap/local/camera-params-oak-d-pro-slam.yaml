@@ -1,0 +1,31 @@
+---
+# Preset for OAK-D-PRO USB tuned for SLAM / VIO / feature-based localization.
+# Differences from oak-d-pro: manual exposure + lower ISO for stable feature tracking
+# (auto-exposure jumps break feature trackers; high ISO adds noise that hurts matching).
+#
+# Tune r_exposure / r_iso to your environment:
+#   indoor lit office: r_exposure ~10000 (10 ms), r_iso 400
+#   indoor dim:        r_exposure ~20000 (20 ms), r_iso 800
+#   outdoor sunlight:  r_exposure ~2000  (2 ms),  r_iso 100
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: true                    # default: true (critical for VIO)
+      i_enable_ir: true                     # default: true
+      i_floodlight_brightness: 1500         # default: 0
+      i_nn_type: none                       # default: spatial
+      i_pipeline_type: RGBD                 # default: RGBD
+    rgb:
+      i_enable_lazy_publisher: false        # default: true
+      i_fps: 30.0                           # default: 30.0; SLAM benefits from higher fps
+      i_low_bandwidth: false                # default: false; raw RGB for max quality
+      i_low_bandwidth_quality: 50           # default: 50 (irrelevant when low_bandwidth=false)
+      i_max_q_size: 4                       # default: 30; low-latency for closed-loop control
+      i_resolution: '1080P'                 # explicit; ISP default scaling → 1280x720
+      r_set_man_exposure: true              # default: false; manual avoids exposure jumps
+      r_exposure: 10000                     # default: 20000; 10 ms for indoor — tune per env
+      r_iso: 400                            # default: 800; lower noise improves feature detection
+    stereo:
+      i_align_depth: true                   # default: false
+      i_lr_check: true                      # default: false
+      i_subpixel: true                      # default: false; smooth depth for VIO

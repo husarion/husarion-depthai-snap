@@ -214,11 +214,12 @@ Boolean toggles (e.g. `enable-pointcloud`, `tf-remap`): use `validate_option "dr
 3. On a fresh install the install-hook copies it to `${SNAP_DATA}/`. On existing installs the `post-refresh` hook will overwrite at the next `snap refresh`.
 4. Note: validation in the configure hook is an inline `[ -f "${SNAP_DATA}/camera-params-${value}.yaml" ]` check — nothing to add, any `<NAME>` passes if the file exists.
 
-Available presets:
-- `camera-params-default.yaml` — RGB-only, low bandwidth (768x432), no IMU/IR. Works for any OAK-x.
+Available presets (1280x720 @ 30 fps, low-latency queue=4):
+- `camera-params-default.yaml` — RGB-only, raw stream over USB, no IMU/IR. Works for any OAK-x.
 - `camera-params-oak-1-lite.yaml` — explicit RGB-only for OAK-1-LITE (single sensor, IMX214).
-- `camera-params-oak-d-pro.yaml` — RGBD + IMU + IR projector + flood, USB.
-- `camera-params-oak-d-pro-poe.yaml` — same as above + `i_ip: 10.15.20.6` (PoE; if your IP differs — copy on the host into a new preset).
+- `camera-params-oak-d-pro.yaml` — RGBD + IMU + IR projector + flood, USB; stereo with subpixel + lr_check + align_depth.
+- `camera-params-oak-d-pro-poe.yaml` — same as above + `i_ip: 10.15.20.6` (PoE; MJPEG quality 50 to fit Ethernet bandwidth; if your IP differs — copy on the host into a new preset).
+- `camera-params-oak-d-pro-slam.yaml` — oak-d-pro tuned for SLAM/VIO: manual exposure (no jumps to break feature trackers) + lower ISO. Tune `r_exposure`/`r_iso` per environment (defaults aimed at indoor lit office).
 
 ### How to add a new DDS transport (XML)
 - DDS XMLs live in **snap-common**, not in this repo. Editing requires a PR to `husarion/husarion-snap-common`, then bumping the pin in the Jinja template.

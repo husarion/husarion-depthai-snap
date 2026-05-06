@@ -13,12 +13,17 @@
       i_usb_speed: SUPER_PLUS               # default: SUPER
     rgb:
       i_enable_lazy_publisher: false        # default: true
-      i_fps: 20.0                           # default: 30.0
-      # ISP scales 1080P (1920x1080) by i_isp_num/i_isp_den = 2/5 → 768x432.
-      # Don't set i_width/i_height explicitly — they would override ISP scaling.
-      # See: https://docs.luxonis.com/software/ros/depthai-ros/driver/
-      i_isp_den: 5                          # default: 3
-      i_low_bandwidth: true                 # default: false
-      i_low_bandwidth_quality: 20           # default: 50
-      i_resolution: '1080P'
-      i_set_isp_scale: true
+      i_fps: 30.0                           # default: 30.0
+      # USB preset: low_bandwidth off — depthai sends raw RGB, ffmpeg_image_transport
+      # does the only encoding pass. Avoids MJPEG→ffmpeg compounding artifacts.
+      i_low_bandwidth: false                # default: false (explicit for clarity)
+      i_low_bandwidth_quality: 50           # default: 50 (irrelevant when low_bandwidth=false)
+      i_max_q_size: 4                       # default: 30; smaller queue = lower latency for control loops (drops frames if consumer slow)
+      i_resolution: '1080P'                 # explicit; ISP default scaling (i_isp_num=2/i_isp_den=3) → 1280x720
+    # Advanced: for low-latency teleop, consider best_effort QoS on image topics.
+    # Note: exact topic path depends on driver.name and ros.namespace.
+    # qos_overrides:
+    #   /oak/rgb/image_raw:
+    #     publisher:
+    #       reliability: best_effort
+    #       durability: volatile
