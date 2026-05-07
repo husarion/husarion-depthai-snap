@@ -9,8 +9,6 @@
       i_nn_type: none                       # default: spatial
       i_pipeline_type: RGB                  # default: RGBD
       i_restart_on_diagnostics_error: true  # default: false
-      # SUPER_PLUS lifts the USB negotiation cap; OAK still tops out at SUPER physically.
-      i_usb_speed: SUPER_PLUS               # default: SUPER
     rgb:
       i_enable_lazy_publisher: false        # default: true
       i_fps: 30.0                           # default: 30.0
