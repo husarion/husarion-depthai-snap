@@ -32,6 +32,7 @@ description: |
   * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-depthai/current/ffmpeg-params-<VALUE>.yaml`
   * startup-delay: `30` - Seconds to sleep on first launch after a fresh boot (uptime < startup-delay+60s). Set to `0` or `''` to disable. Workaround for depthai-ros USB cold-start race; tune higher (60+) for slow-booting hosts, lower (10-15) for fast x86.
   * enable-pointcloud: `false` - Load `depth_image_proc::PointCloudXyzrgbNode` and force RGB/stereo timestamp sync. Requires RGBD pipeline (e.g. `camera-params=oak-d-pro`).
+  * rectify-rgb: `true` - Load `image_proc::RectifyNode` to publish `<name>/rgb/image_rect` alongside the raw stream. Set `false` to skip rectification (saves a bit of CPU; `image_raw` is always published either way).
 
   To set the parameters, use the snap set command, e.g.,
 

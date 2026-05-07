@@ -8,7 +8,7 @@ source $SNAP/usr/bin/utils.sh
 OPTIONS=(
   name
   enable-pointcloud
-  # params-file
+  rectify-rgb
 )
 
 LAUNCH_OPTIONS=""
@@ -34,7 +34,7 @@ FFMPEG_PARAMS="$(snapctl get driver.ffmpeg-params)"
 LAUNCH_OPTIONS+="ffmpeg_params_file:=${SNAP_DATA}/ffmpeg-params-${FFMPEG_PARAMS}.yaml "
 
 if [ "${LAUNCH_OPTIONS}" ]; then
-  # watch the log with: "journalctl -t husarion-astra"
+  # watch the log with: "journalctl -t husarion-depthai"
   log_and_echo "Running with options: ${LAUNCH_OPTIONS}"
 fi
 

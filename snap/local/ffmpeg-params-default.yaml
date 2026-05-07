@@ -9,7 +9,9 @@
       # find the list of available presets by running `ffmpeg -h encoder=libx264`
       preset: ultrafast
       tune: zerolatency
-      # 0.5s keyframe interval @ 30fps — late subscribers (Foxglove, rviz) can
-      # start decoding within ~half a second. libav default is 250 → ~8s wait
-      # for next IDR, which manifests as "playing 10s-old footage" on connect.
-      gop_size: 15
+      # 2s keyframe interval @ 30fps — late subscribers (Foxglove, rviz) can
+      # start decoding within ~2s. libav default is 250 → ~8s wait for the next
+      # IDR, which manifests as "playing 10s-old footage" on connect. Trade-off:
+      # shorter GOP = faster recovery but higher bandwidth (keyframes are 5-10x
+      # larger than P-frames). 2s is the conventional teleop sweet spot.
+      gop_size: 60
