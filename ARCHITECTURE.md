@@ -146,8 +146,7 @@ husarion-depthai (snap)
 │   │                                       # bundled: default, oak-1-lite, oak-d-pro, oak-d-pro-poe
 │   ├── ffmpeg-params     = default       # name of ffmpeg-params-<NAME>.yaml in $SNAP_DATA
 │   ├── startup-delay     = 30            # seconds 0-120 (allow-unset); workaround for USB cold-start race after reboot
-│   ├── enable-pointcloud = false         # bool; load PointCloudXyzrgbNode + force RGB/stereo sync
-│   └── tf-remap          = false         # bool; remap /tf{,_static} under ros.namespace (no-op when ns empty)
+│   └── enable-pointcloud = false         # bool; load PointCloudXyzrgbNode + force RGB/stereo sync
 │
 └── ros.*                                 # shared; handled by configure_hook_ros.sh from snap-common
     ├── domain-id         = 0             # 0..232
@@ -171,7 +170,6 @@ husarion-depthai (snap)
 /<ns>/<name>/rgb/image_rect[/...]           # only if rectify_rgb=true (image_proc::RectifyNode)
 /<ns>/<name>/stereo/image_raw               # depth (if i_pipeline_type: RGBD)
 /<ns>/<name>/points                         # PointCloud2 (from PointCloudXyzrgbNode)
-/<ns>/tf, /<ns>/tf_static                   # static TF subscribed/published only when consumers exist; remapped under namespace if driver.tf-remap=true
 ```
 
 ---
@@ -244,7 +242,7 @@ ros_setup.sh:
         │
         ▼ command
 launcher.sh:
-  collect driver.{name,enable-pointcloud,tf-remap}
+  collect driver.{name,enable-pointcloud}
   → LAUNCH_OPTIONS (kebab → snake)
   + namespace:= ros.namespace (if set)
   + params_file := $SNAP_DATA/camera-params-${driver.camera-params}.yaml
@@ -333,10 +331,9 @@ launcher.sh starts from scratch with the new values
 
 **Consequence**: if a new lib with execstack ON shows up, add it to `choosen_files` in `fix-execstack`. The build needs the apt `execstack` package.
 
-### D8. Pointcloud and TF remap controlled via `driver.*`, not via the params YAML
+### D8. Pointcloud controlled via `driver.*`, not via the params YAML
 **Why**:
 - `enable-pointcloud` is a "launch topology" decision (whether to load `PointCloudXyzrgbNode`), not a driver parameter per se. Keeping it in `snap set` gives opt-in without modifying `camera-params-*.yaml` per host.
-- `tf-remap` is a pure runtime wrapping decision (`remappings=[(...)]` on the ComposableNode). Also doesn't belong in the params YAML.
 - Sync overrides (`pipeline_gen.i_enable_sync`, `rgb.i_synced`, `stereo.i_synced`) are injected in launch.py when `enable-pointcloud=true` — mirroring what upstream `camera.launch.py` does on `pointcloud.enable=true`.
 
 **Consequence**: `camera-params-*.yaml` describe ONLY driver parameters (sensors, pipeline, IMU). Launch toggles live in `driver.*` in the snap. Boundary clear.
@@ -345,7 +342,6 @@ launcher.sh starts from scratch with the new values
 **Why we keep our own launch**:
 - Composable node naming (`<name>_rectify_color_node` instead of upstream `rectify_color_node`) — preparation for multicam.
 - No dependency on `urdf_launch.py` from `depthai_descriptions` — Husarion has its own robot URDF.
-- Our own `tf_remap` + `SetRemap` (upstream lacks this).
 
 **Coverage versus upstream `camera.launch.py` jazzy 2.12.2**:
 
@@ -364,10 +360,7 @@ launcher.sh starts from scratch with the new values
 | `rs_compat` (RealSense compat) + `enable_color/depth/infra*`, `*_profile` args | ❌ deliberately omitted |
 | `setup_launch_prefix` (gdb/valgrind/perf) | ❌ omitted (snap strict confinement limits debug tools anyway) |
 
-**Our additions over upstream**:
-- `tf_remap` + `SetRemap("/tf"|"/tf_static")` — namespace-aware TF for Husarion robots.
-
-**Future decision**: could switch to `IncludeLaunchDescription(camera.launch.py)` mapping our `driver.*` to upstream args, but we'd lose control over node naming and `tf_remap` would have to live "alongside". Low priority — current coverage is complete.
+**Future decision**: could switch to `IncludeLaunchDescription(camera.launch.py)` mapping our `driver.*` to upstream args, but we'd lose control over node naming. Low priority — current coverage is complete.
 
 ### D10. Snap Store channels: branch → edge, tag → candidate
 **Why**: `main` has working code, but not necessarily production-tested → `edge`. Git tags = intentional release → `candidate` (manually promoted to stable from there).
@@ -392,28 +385,23 @@ launcher.sh starts from scratch with the new values
 
 ## 9. Known limitations / technical debt
 
-1. **README inconsistencies**:
-   - [README.md:122-136](README.md#L122) — `depthai-camera` instead of `husarion-depthai` in 3 places.
-   - [README.md:42](README.md#L42) (`i_restart_on_diagnostics_error: false`) vs [camera-params-default.yaml:24](snap/local/camera-params-default.yaml#L24) (`true`).
-   - The README does not mention the new parameters `driver.{enable-pointcloud,tf-remap,startup-delay}` or the `oak-1-lite`/`oak-d-pro`/`oak-d-pro-poe` presets.
+1. **"startup-delay" workaround** — heuristic, not a root-cause fix. The uptime-based mechanism is simple and deterministic, but assumes that `int(/proc/uptime) < STARTUP_DELAY + 60s` is a good proxy for "fresh boot". `ros2 daemon stop && sleep 1` from commit 8f874b "test" (on `main`) is also pending verification. Sanity-check procedure on a depthai-ros bump: [CLAUDE.md → "Before bumping apt dependencies"](CLAUDE.md).
 
-2. **"startup-delay" workaround** — heuristic, not a root-cause fix. The uptime-based mechanism is simple and deterministic, but assumes that `int(/proc/uptime) < STARTUP_DELAY + 60s` is a good proxy for "fresh boot". `ros2 daemon stop && sleep 1` from commit 8f874b "test" (on `main`) is also pending verification. Sanity-check procedure on a depthai-ros bump: [CLAUDE.md → "Before bumping apt dependencies"](CLAUDE.md).
+2. ~~`${SNAP_COMMON}` is not synced on refresh~~ — **resolved**: yaml presets live in `${SNAP_DATA}` and are refreshed by the `post-refresh` hook. User customs survive (snapd copies `$SNAP_DATA` per revision). Legacy customs from `$SNAP_COMMON` are migrated once.
 
-3. ~~`${SNAP_COMMON}` is not synced on refresh~~ — **resolved**: yaml presets live in `${SNAP_DATA}` and are refreshed by the `post-refresh` hook. User customs survive (snapd copies `$SNAP_DATA` per revision). Legacy customs from `$SNAP_COMMON` are migrated once.
+3. **`ros2-{distro}-ros-base` extension requires an experimental flag** — `SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1`. If that flag is removed/renamed, the build breaks.
 
-4. **`ros2-{distro}-ros-base` extension requires an experimental flag** — `SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1`. If that flag is removed/renamed, the build breaks.
+4. **`fix-execstack` requires apt `execstack`** — may be unavailable in some core24 configurations. If so, `just swap-enable` or a beefier machine helps (LXD OOM).
 
-5. **`fix-execstack` requires apt `execstack`** — may be unavailable in some core24 configurations. If so, `just swap-enable` or a beefier machine helps (LXD OOM).
+5. **`demo/`** — unofficial, scheduled for removal (compose + RViz). Don't treat it as part of the supported surface.
 
-6. **`demo/`** — unofficial, scheduled for removal (compose + RViz). Don't treat it as part of the supported surface.
+6. **`humble` track** — actively maintained (CI matrix), but ROS 2 Humble is pre-EOL; users will be migrated to `jazzy`.
 
-7. **`humble` track** — actively maintained (CI matrix), but ROS 2 Humble is pre-EOL; users will be migrated to `jazzy`.
+7. **Snap version = apt Candidate** — if the apt cache is stale on a GH Actions runner, the version may shift between builds on the same day.
 
-8. **Snap version = apt Candidate** — if the apt cache is stale on a GH Actions runner, the version may shift between builds on the same day.
+8. **No unit/integration tests** — the only validation is "snap install --dangerous" in CI. Runtime regressions (e.g. a change in `launcher.sh`) are caught only by manual launch on the target platform.
 
-9. **No unit/integration tests** — the only validation is "snap install --dangerous" in CI. Runtime regressions (e.g. a change in `launcher.sh`) are caught only by manual launch on the target platform.
-
-10. **Snap size ~580 MB** — large surface, long `snap download`/`refresh`. Most of it is ROS 2 base + depthai-ros + ffmpeg. Optimizing via `stage-snaps` instead of `stage-packages` would be possible but unverified.
+9. **Snap size ~580 MB** — large surface, long `snap download`/`refresh`. Most of it is ROS 2 base + depthai-ros + ffmpeg. Optimizing via `stage-snaps` instead of `stage-packages` would be possible but unverified.
 
 ---
 

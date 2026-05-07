@@ -8,7 +8,7 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes, SetRemap
+from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
 from launch_ros.descriptions import ComposableNode, ParameterFile
 
 
@@ -22,7 +22,6 @@ def launch_setup(context, *args, **kwargs):
     name = LaunchConfiguration("name").perform(context)
     namespace = LaunchConfiguration("namespace").perform(context)
     enable_pointcloud = LaunchConfiguration("enable_pointcloud").perform(context) == "true"
-    tf_remap = LaunchConfiguration("tf_remap").perform(context) == "true"
 
     rgb_topic_name = name + "/rgb/image_raw"
     if LaunchConfiguration("rectify_rgb").perform(context) == "true":
@@ -41,13 +40,6 @@ def launch_setup(context, *args, **kwargs):
     container_name = f"/{namespace}/{name}_container" if namespace else f"/{name}_container"
 
     actions = []
-
-    # Global TF remap (Camera + Rectify + PCL) so the camera's TF tree merges
-    # with a namespaced robot's TF tree instead of colliding at root. No-op
-    # when namespace is empty.
-    if tf_remap and namespace:
-        actions.append(SetRemap(src="/tf", dst=f"/{namespace}/tf"))
-        actions.append(SetRemap(src="/tf_static", dst=f"/{namespace}/tf_static"))
 
     actions.append(
         ComposableNodeContainer(
@@ -133,11 +125,6 @@ def generate_launch_description():
             "enable_pointcloud",
             default_value="false",
             description="Load depth_image_proc::PointCloudXyzrgbNode and force RGB/stereo sync.",
-        ),
-        DeclareLaunchArgument(
-            "tf_remap",
-            default_value="false",
-            description="Remap /tf and /tf_static under the namespace (no-op if namespace empty).",
         ),
     ]
 

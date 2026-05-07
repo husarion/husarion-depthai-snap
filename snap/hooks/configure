@@ -16,7 +16,6 @@ VALID_DRIVER_KEYS=(
   "ffmpeg-params"
   "startup-delay"
   "enable-pointcloud"
-  "tf-remap"
 )
 
 # common
@@ -35,7 +34,6 @@ validate_number --allow-unset "driver.startup-delay" SUPPORTED_RANGE[@]
 
 VALID_BOOL_OPTIONS=("true" "false")
 validate_option "driver.enable-pointcloud" VALID_BOOL_OPTIONS[@]
-validate_option "driver.tf-remap" VALID_BOOL_OPTIONS[@]
 
 # export LD_LIBRARY_PATH=$SNAP/usr/lib/$(uname -m)-linux-gnu/pulseaudio:$SNAP/usr/lib/$(uname -m)-linux-gnu/blas:$SNAP/usr/lib/$(uname -m)-linux-gnu/lapack:$LD_LIBRARY_PATH
 

@@ -8,7 +8,6 @@ source $SNAP/usr/bin/utils.sh
 OPTIONS=(
   name
   enable-pointcloud
-  tf-remap
   # params-file
 )
 

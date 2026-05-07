@@ -27,7 +27,6 @@ sudo snap set husarion-depthai driver.camera-model=OAK-D-PRO
 sudo snap set husarion-depthai driver.camera-params=oak-d-pro
 sudo snap set husarion-depthai driver.ffmpeg-params=default
 sudo snap set husarion-depthai driver.enable-pointcloud=true   # PointCloudXyzrgbNode (RGBD presets only)
-sudo snap set husarion-depthai driver.tf-remap=true            # /tf{,_static} → /<ns>/tf{,_static}
 sudo snap set husarion-depthai driver.startup-delay=30         # seconds to sleep on fresh boot (USB cold-start workaround)
 
 # ROS / DDS
