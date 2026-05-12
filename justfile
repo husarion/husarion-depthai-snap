@@ -25,8 +25,7 @@ install:
     #!/bin/bash
     unsquashfs husarion-depthai*.snap
     sudo snap try squashfs-root/
-    sudo snap connect husarion-depthai:raw-usb
-    sudo snap connect husarion-depthai:c189-plug
+    sudo /var/snap/husarion-depthai/common/post_install.sh
     sudo husarion-depthai.stop
 
 remove:
@@ -37,19 +36,19 @@ remove:
 clean:
     #!/bin/bash
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
-    snapcraft clean   
+    snapcraft clean
 
 iterate target="jazzy":
     #!/bin/bash
     start_time=$(date +%s)
-    
+
     echo "Starting script..."
 
     sudo snap remove husarion-depthai
     sudo rm -rf squashfs-root/
     sudo rm -rf husarion-depthai*.snap
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
-    
+
     if [ {{target}} == "humble" ]; then
         export ROS_DISTRO=humble
     elif [ {{target}} == "jazzy" ]; then
@@ -64,7 +63,7 @@ iterate target="jazzy":
     ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
     chmod 444 snap/snapcraft.yaml
     snapcraft
-    
+
     unsquashfs husarion-depthai*.snap
     sudo snap try squashfs-root/
     sudo /var/snap/husarion-depthai/common/post_install.sh

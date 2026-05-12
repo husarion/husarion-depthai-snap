@@ -6,7 +6,7 @@
 # - whenever the user runs snap set|unset to change a configuration option
 
 # Define a function to log and echo messages
-source $SNAP/usr/bin/utils.sh
+source "$SNAP/usr/bin/utils.sh"
 
 # # Define the top-level key and the list of valid keys
 VALID_DRIVER_KEYS=(
@@ -51,14 +51,10 @@ for param in camera-params ffmpeg-params; do
     fi
 done
 
-$SNAP/usr/bin/configure_hook_ros.sh
+"$SNAP/usr/bin/configure_hook_ros.sh"
 
-# restart services with new ROS 2 config
-for service in daemon; do
-  if snapctl services ${SNAP_NAME}.${service} | grep -qw enabled; then
-    snapctl restart ${SNAP_NAME}.${service}
-    log "Restarted ${SNAP_NAME}.${service}"
-  fi
-done
-
-
+# restart the daemon with new ROS 2 config
+if snapctl services "${SNAP_NAME}.daemon" | grep -qw enabled; then
+  snapctl restart "${SNAP_NAME}.daemon"
+  log "Restarted ${SNAP_NAME}.daemon"
+fi

@@ -1,13 +1,13 @@
 #!/bin/bash -e
 
 # Define a function to log and echo messages
-source $SNAP/usr/bin/utils.sh
+source "$SNAP/usr/bin/utils.sh"
 
-$SNAP/usr/bin/install_hook_ros.sh
+"$SNAP/usr/bin/install_hook_ros.sh"
 
 # driver.* defaults — shared with post-refresh so new params introduced in a
 # later snap revision are auto-applied (without clobbering user-modified values).
-$SNAP/usr/bin/apply_defaults.sh
+"$SNAP/usr/bin/apply_defaults.sh"
 
 if ! snapctl is-connected raw-usb; then
   log "Plug 'raw-usb' isn't connected, please run:"
@@ -17,7 +17,7 @@ fi
 # Bundled YAML presets live in $SNAP_DATA (per-revision) so they're refreshed
 # on every snap upgrade — see snap/hooks/post-refresh. User custom presets in
 # $SNAP_DATA are preserved by snapd's data migration across refreshes.
-cp ${SNAP}/usr/share/${SNAP_NAME}/config/*.yaml ${SNAP_DATA}/
+cp "${SNAP}/usr/share/${SNAP_NAME}/config/"*.yaml "${SNAP_DATA}/"
 
 # post_install.sh stays in $SNAP_COMMON — it's a user-facing helper, not a runtime preset.
 cp "$SNAP/usr/bin/post_install.sh" "${SNAP_COMMON}/"

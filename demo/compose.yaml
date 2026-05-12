@@ -37,4 +37,3 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all # if LIBGL_ALWAYS_SOFTWARE=1 this env var is ignored
       - NVIDIA_DRIVER_CAPABILITIES=all # if LIBGL_ALWAYS_SOFTWARE=1 this env var is ignored
     command: ros2 launch /rviz.launch.py
-

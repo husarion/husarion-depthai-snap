@@ -5,7 +5,7 @@
 
       # find the list of available encoders by running `ffmpeg -encoders`
       encoding: libx264
-      
+
       # find the list of available presets by running `ffmpeg -h encoder=libx264`
       preset: ultrafast
       tune: zerolatency

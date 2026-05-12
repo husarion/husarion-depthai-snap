@@ -9,7 +9,7 @@
 #     bundled versions). Lets us evolve preset schema without leaving stale
 #     copies on hosts.
 
-source $SNAP/usr/bin/utils.sh
+source "$SNAP/usr/bin/utils.sh"
 
 # Drop driver.* keys removed in the launcher refactor (parent-frame, cam-pos-*,
 # cam-roll/pitch/yaw, all gated on the dropped publish_tf_from_calibration path).
@@ -38,4 +38,4 @@ cp "${SNAP}/usr/share/${SNAP_NAME}/config"/*.yaml "${SNAP_DATA}/"
 
 # Apply defaults for driver.* params added in this revision (idempotent —
 # existing user-set values are preserved).
-$SNAP/usr/bin/apply_defaults.sh
+"$SNAP/usr/bin/apply_defaults.sh"

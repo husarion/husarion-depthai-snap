@@ -5,7 +5,7 @@
 # refresh) so that new parameters introduced in a later snap revision get their
 # defaults applied without clobbering user-modified values from earlier ones.
 
-source $SNAP/usr/bin/utils.sh
+source "$SNAP/usr/bin/utils.sh"
 
 set_default_if_unset() {
     local key="$1"
