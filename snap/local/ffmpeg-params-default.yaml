@@ -1,17 +1,36 @@
 ---
+# ffmpeg_image_transport 3.x derives the parameter prefix from the publisher's
+# advertised base topic name (slash → dot, leading slash stripped):
+#   - depthai_ros_driver::Camera advertises `oak/rgb/image_raw`
+#       → prefix `oak.rgb.image_raw.ffmpeg.*`
+#   - image_proc::RectifyNode advertises base name `image_rect` (later remapped)
+#       → prefix `image_rect.ffmpeg.*`
+# If you change `driver.name` from the default `oak`, update the first block.
+#
+# Recognized keys (from libffmpeg_image_transport_component.so):
+#   encoder, bit_rate, gop_size, qmax, max_b_frames, pixel_format,
+#   encoder_av_options (comma-separated `key:value` pairs, e.g. `preset:ultrafast,tune:zerolatency`),
+#   encoder_measure_performance.
 /**:
   ros__parameters:
-    ffmpeg_image_transport:
-
-      # find the list of available encoders by running `ffmpeg -encoders`
-      encoding: libx264
-
-      # find the list of available presets by running `ffmpeg -h encoder=libx264`
-      preset: ultrafast
-      tune: zerolatency
-      # 2s keyframe interval @ 30fps — late subscribers (Foxglove, rviz) can
-      # start decoding within ~2s. libav default is 250 → ~8s wait for the next
-      # IDR, which manifests as "playing 10s-old footage" on connect. Trade-off:
-      # shorter GOP = faster recovery but higher bandwidth (keyframes are 5-10x
-      # larger than P-frames). 2s is the conventional teleop sweet spot.
-      gop_size: 60
+    oak:
+      rgb:
+        image_raw:
+          ffmpeg:
+            encoder: libx264
+            # libx264 requires an explicit bitrate (or CRF via av_options); the
+            # default sentinel -1 makes `avcodec_open2` fail with "bitrate not
+            # specified". 4 Mbps is a good 720p30 sweet spot.
+            bit_rate: 4000000
+            # 2s keyframe interval @ 30fps — late subscribers (Foxglove, rviz)
+            # can start decoding within ~2s. libav default is 250 → ~8s wait
+            # for the next IDR. Shorter GOP = faster recovery but higher
+            # bandwidth (keyframes are 5-10x larger than P-frames).
+            gop_size: 60
+            encoder_av_options: "preset:ultrafast,tune:zerolatency"
+    image_rect:
+      ffmpeg:
+        encoder: libx264
+        bit_rate: 4000000
+        gop_size: 60
+        encoder_av_options: "preset:ultrafast,tune:zerolatency"

@@ -18,6 +18,9 @@ def launch_setup(context, *args, **kwargs):
         log_level = "debug"
 
     params_file = ParameterFile(LaunchConfiguration("params_file"), allow_substs=True)
+    ffmpeg_params_file = ParameterFile(
+        LaunchConfiguration("ffmpeg_params_file"), allow_substs=True
+    )
 
     name = LaunchConfiguration("name").perform(context)
     namespace = LaunchConfiguration("namespace").perform(context)
@@ -53,7 +56,7 @@ def launch_setup(context, *args, **kwargs):
                     plugin="depthai_ros_driver::Camera",
                     name=name,
                     namespace=namespace,
-                    parameters=[params_file, pcl_param_overrides],
+                    parameters=[params_file, ffmpeg_params_file, pcl_param_overrides],
                 )
             ],
             arguments=["--ros-args", "--log-level", log_level],
@@ -71,6 +74,7 @@ def launch_setup(context, *args, **kwargs):
                     plugin="image_proc::RectifyNode",
                     name=name + "_rectify_color_node",
                     namespace=namespace,
+                    parameters=[ffmpeg_params_file],
                     remappings=[
                         ("image", name + "/rgb/image_raw"),
                         ("camera_info", name + "/rgb/camera_info"),
@@ -81,6 +85,8 @@ def launch_setup(context, *args, **kwargs):
                             name + "/rgb/image_rect/compressedDepth",
                         ),
                         ("image_rect/theora", name + "/rgb/image_rect/theora"),
+                        ("image_rect/ffmpeg", name + "/rgb/image_rect/ffmpeg"),
+                        ("image_rect/zstd", name + "/rgb/image_rect/zstd"),
                     ],
                 )
             ],
@@ -120,6 +126,7 @@ def generate_launch_description():
             "params_file",
             default_value=os.path.join(depthai_prefix, "config", "rgbd.yaml"),
         ),
+        DeclareLaunchArgument("ffmpeg_params_file"),
         DeclareLaunchArgument("rectify_rgb", default_value="true"),
         DeclareLaunchArgument(
             "enable_pointcloud",
