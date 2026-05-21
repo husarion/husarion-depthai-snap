@@ -1,0 +1,30 @@
+---
+# Chip-encoded H.264 stream — uses the OAK chip's hardware VideoEncoder instead
+# of host-side libx264. Trades off ~50% daemon CPU savings against the rectify
+# and pointcloud pipelines (see CLAUDE.md "Pitfalls" section).
+#
+# With i_low_bandwidth=true the depthai_ros_driver:
+#   - skips publishing raw /oak/rgb/image_raw  (sensor_msgs/Image bgr8 disappears)
+#   - publishes the chip's H.264 bitstream on /oak/rgb/image_raw/compressed as
+#     a ffmpeg_image_transport_msgs/FFMPEGPacket (despite the "compressed" suffix)
+#
+# Pair with `driver.rectify-rgb=false` (no rect node, would have no input anyway)
+# and `driver.enable-pointcloud=false` (PCL node needs raw RGB it can't get).
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_nn_type: none
+      i_pipeline_type: RGB
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false
+      i_fps: 30.0
+      i_low_bandwidth: true
+      i_low_bandwidth_profile: 2          # H264_MAIN
+      i_low_bandwidth_bitrate: 4000000    # 4 Mbps, same target as libx264 preset
+      i_low_bandwidth_frame_freq: 60      # keyframe every 2 s @ 30 fps
+      i_max_q_size: 4
+      i_publish_compressed: true          # required — false triggers host decode bug #687
+      i_resolution: '1080P'

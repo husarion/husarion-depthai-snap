@@ -164,6 +164,16 @@ just remove-lxd-cache   # free space from snapcraft LXD containers
 ### Demo (`demo/`) — unofficial
 - `demo/compose.yaml` + `demo/rviz.launch.py` — container with RViz + an `ffmpeg→raw` decoder. Ad-hoc test only. Do not treat as part of the supported user workflow; may be removed.
 
+### Why default doesn't use the OAK chip's hardware H.264 encoder
+The Movidius VPU on the OAK has a dedicated H.264/H.265 encoder, exposed by `depthai_ros_driver` via `rgb.i_low_bandwidth=true` + `rgb.i_low_bandwidth_profile=2` (H264_MAIN). Measured locally on x86: daemon CPU drops from ~127% (libx264 active) to ~1.3% — meaningful for RPi5/ARM64. We still default to software libx264. Reasons:
+
+- **Driver makes raw and encoded outputs exclusive.** When `low_bandwidth=true` with `i_publish_compressed=true`, the depthai_ros_driver stops publishing raw `/oak/rgb/image_raw` (sensor_msgs/Image bgr8). Confirmed empirically: only `/oak/rgb/image_raw/compressed` remains, carrying chip H.264 as `ffmpeg_image_transport_msgs/FFMPEGPacket` (despite the `/compressed` suffix). Topic origin: `img_pub.cpp` in upstream luxonis/depthai-ros — verified at v2.12.2 and v3.2.1; not slated for change.
+- **Pipeline breakage cascades from the missing raw topic.** `image_proc::RectifyNode` has no input → no `/oak/rgb/image_rect`. `depth_image_proc::PointCloudXyzrgbNode` needs raw RGB for textured PCL → broken. Same goes for `image_rect/*`, `image_raw/{ffmpeg,theora,zstd}` transport variants — none of them appear.
+- **Open upstream bugs**: [#717](https://github.com/luxonis/depthai-ros/issues/717) (`low_bandwidth=true` + `stereo.i_synced=true` causes RGB corruption — and we set `i_synced=true` whenever `enable-pointcloud=true`) and [#687](https://github.com/luxonis/depthai-ros/issues/687) (`i_publish_compressed=false` triggers host-side stride decode bug).
+- **`i_low_bandwidth_ffmpeg_encoder` is dead.** Declared in `sensor_param_handler.cpp` with default `"libx264"`, never read back. Only ends up as a string label in the FFMPEGPacket's `encoding` field — purely metadata, doesn't switch encoders. Don't waste time tuning it.
+
+The chip encoder is still useful for streaming-only deployments (no rectified image / PCL needed). Available as opt-in via `driver.camera-params=streaming-h264` + `driver.rectify-rgb=false`. See `camera-params-streaming-h264.yaml` in the preset list below.
+
 ## Workflow
 
 ### Before bumping apt dependencies (especially `ros-{distro}-depthai-ros`)
@@ -209,6 +219,7 @@ Available presets (1280x720 @ 30 fps, low-latency queue=4):
 - `camera-params-oak-d-pro.yaml` — RGBD + IMU + IR projector + flood, USB; stereo with subpixel + lr_check + align_depth.
 - `camera-params-oak-d-pro-poe.yaml` — same as above + `i_ip: 10.15.20.6` (PoE; MJPEG quality 50 to fit Ethernet bandwidth; if your IP differs — copy on the host into a new preset).
 - `camera-params-oak-d-pro-slam.yaml` — oak-d-pro tuned for SLAM/VIO: manual exposure (no jumps to break feature trackers) + lower ISO. Tune `r_exposure`/`r_iso` per environment (defaults aimed at indoor lit office).
+- `camera-params-streaming-h264.yaml` — **opt-in**, chip-side H.264 encoder (`i_low_bandwidth=true`, profile H264_MAIN, 4 Mbps, 2s GOP). ~98% daemon CPU win vs libx264 but drops raw `/image_raw`, rect, depth, and PCL — streaming-only use. See "Pitfalls → Why default doesn't use the OAK chip's hardware H.264 encoder". Pair with `sudo snap set husarion-depthai driver.rectify-rgb=false`.
 
 ### How to add a new DDS transport (XML)
 - DDS XMLs live in **snap-common**, not in this repo. Editing requires a PR to `husarion/husarion-snap-common`, then bumping the pin in the Jinja template.

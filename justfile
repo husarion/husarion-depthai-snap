@@ -4,6 +4,7 @@ default:
 
 build target="humble":
     #!/bin/bash
+    set -euo pipefail
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
 
     if [ {{target}} == "humble" ]; then
@@ -19,10 +20,11 @@ build target="humble":
 
     ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
 
-    snapcraft
+    snapcraft pack
 
 install:
     #!/bin/bash
+    set -euo pipefail
     unsquashfs husarion-depthai*.snap
     sudo snap try squashfs-root/
     sudo /var/snap/husarion-depthai/common/post_install.sh
@@ -30,21 +32,23 @@ install:
 
 remove:
     #!/bin/bash
-    sudo snap remove husarion-depthai
+    sudo snap remove husarion-depthai || true
     sudo rm -rf squashfs-root/
 
 clean:
     #!/bin/bash
+    set -euo pipefail
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
     snapcraft clean
 
 iterate target="jazzy":
     #!/bin/bash
+    set -euo pipefail
     start_time=$(date +%s)
 
     echo "Starting script..."
 
-    sudo snap remove husarion-depthai
+    sudo snap remove husarion-depthai || true
     sudo rm -rf squashfs-root/
     sudo rm -rf husarion-depthai*.snap
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
@@ -62,7 +66,7 @@ iterate target="jazzy":
     sudo rm -rf snap/snapcraft.yaml
     ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
     chmod 444 snap/snapcraft.yaml
-    snapcraft
+    snapcraft pack
 
     unsquashfs husarion-depthai*.snap
     sudo snap try squashfs-root/
@@ -81,6 +85,7 @@ iterate target="jazzy":
 
 swap-enable:
     #!/bin/bash
+    set -euo pipefail
     sudo fallocate -l 2G /swapfile
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
@@ -96,6 +101,7 @@ swap-enable:
 
 swap-disable:
     #!/bin/bash
+    set -euo pipefail
     sudo swapoff /swapfile
     sudo rm /swapfile
     sudo sed -i '/\/swapfile swap swap defaults 0 0/d' /etc/fstab  # Remove the swap file entry
@@ -104,12 +110,14 @@ swap-disable:
 
 prepare-store-credentials:
     #!/bin/bash
+    set -euo pipefail
     snapcraft export-login --snaps=husarion-depthai \
       --acls package_access,package_push,package_update,package_release \
       exported.txt
 
 publish:
     #!/bin/bash
+    set -euo pipefail
     export SNAPCRAFT_STORE_CREDENTIALS=$(cat exported.txt)
     snapcraft login
     snapcraft upload --release edge husarion-depthai*.snap
@@ -120,6 +128,7 @@ list-lxd-cache:
 
 remove-lxd-cache:
     #!/bin/bash
+    set -euo pipefail
     lxc project switch snapcraft
 
     for container in $(lxc list --format csv -c n); do

@@ -49,7 +49,11 @@ def launch_setup(context, *args, **kwargs):
             name=name + "_container",
             namespace=namespace,
             package="rclcpp_components",
-            executable="component_container",
+            # _mt (multithreaded) executor — single-threaded `component_container`
+            # was losing 99% of intra-container deliveries between depthai Camera
+            # and image_proc::RectifyNode after external subscriber churn, leaving
+            # image_rect at ~1 Hz until daemon restart.
+            executable="component_container_mt",
             composable_node_descriptions=[
                 ComposableNode(
                     package="depthai_ros_driver",
