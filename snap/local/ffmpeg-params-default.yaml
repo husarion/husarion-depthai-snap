@@ -18,19 +18,20 @@
         image_raw:
           ffmpeg:
             encoder: libx264
-            # libx264 requires an explicit bitrate (or CRF via av_options); the
-            # default sentinel -1 makes `avcodec_open2` fail with "bitrate not
-            # specified". 4 Mbps is a good 720p30 sweet spot.
-            bit_rate: 4000000
-            # 2s keyframe interval @ 30fps — late subscribers (Foxglove, rviz)
-            # can start decoding within ~2s. libav default is 250 → ~8s wait
-            # for the next IDR. Shorter GOP = faster recovery but higher
-            # bandwidth (keyframes are 5-10x larger than P-frames).
-            gop_size: 60
-            encoder_av_options: "preset:ultrafast,tune:zerolatency"
+            # 2 Mbps target — comfortable for teleop over WiFi 2.4 GHz /
+            # weaker links. Bump to 4-6 Mbps for stable LAN if quality matters
+            # more than bandwidth. libx264 requires an explicit bitrate; the
+            # default sentinel -1 makes `avcodec_open2` fail.
+            bit_rate: 2000000
+            # 1s refresh cycle @ 30fps. With intra-refresh below, I-frame data
+            # is spread across the cycle (no keyframe spikes — flat bitrate
+            # profile, easier on jitter buffers). Trade-off: late subscribers
+            # (Foxglove, rviz) must wait a full cycle before they can decode.
+            gop_size: 30
+            encoder_av_options: "preset:ultrafast,tune:zerolatency,intra-refresh:1"
     image_rect:
       ffmpeg:
         encoder: libx264
-        bit_rate: 4000000
-        gop_size: 60
-        encoder_av_options: "preset:ultrafast,tune:zerolatency"
+        bit_rate: 2000000
+        gop_size: 30
+        encoder_av_options: "preset:ultrafast,tune:zerolatency,intra-refresh:1"
