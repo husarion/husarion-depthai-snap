@@ -1,11 +1,37 @@
 ---
+# ffmpeg_image_transport 3.x derives the parameter prefix from the publisher's
+# advertised base topic name (slash → dot, leading slash stripped):
+#   - depthai_ros_driver::Camera advertises `oak/rgb/image_raw`
+#       → prefix `oak.rgb.image_raw.ffmpeg.*`
+#   - image_proc::RectifyNode advertises base name `image_rect` (later remapped)
+#       → prefix `image_rect.ffmpeg.*`
+# If you change `driver.name` from the default `oak`, update the first block.
+#
+# Recognized keys (from libffmpeg_image_transport_component.so):
+#   encoder, bit_rate, gop_size, qmax, max_b_frames, pixel_format,
+#   encoder_av_options (comma-separated `key:value` pairs, e.g. `preset:ultrafast,tune:zerolatency`),
+#   encoder_measure_performance.
 /**:
   ros__parameters:
-    ffmpeg_image_transport:
-
-      # find the list of available encoders by running `ffmpeg -encoders`
-      encoding: libx264
-      
-      # find the list of available presets by running `ffmpeg -h encoder=libx264`
-      preset: ultrafast
-      tune: zerolatency
+    oak:
+      rgb:
+        image_raw:
+          ffmpeg:
+            encoder: libx264
+            # 2 Mbps target — comfortable for teleop over WiFi 2.4 GHz /
+            # weaker links. Bump to 4-6 Mbps for stable LAN if quality matters
+            # more than bandwidth. libx264 requires an explicit bitrate; the
+            # default sentinel -1 makes `avcodec_open2` fail.
+            bit_rate: 2000000
+            # 1s refresh cycle @ 30fps. With intra-refresh below, I-frame data
+            # is spread across the cycle (no keyframe spikes — flat bitrate
+            # profile, easier on jitter buffers). Trade-off: late subscribers
+            # (Foxglove, rviz) must wait a full cycle before they can decode.
+            gop_size: 30
+            encoder_av_options: "preset:ultrafast,tune:zerolatency,intra-refresh:1"
+    image_rect:
+      ffmpeg:
+        encoder: libx264
+        bit_rate: 2000000
+        gop_size: 30
+        encoder_av_options: "preset:ultrafast,tune:zerolatency,intra-refresh:1"

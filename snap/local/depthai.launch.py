@@ -4,14 +4,12 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    IncludeLaunchDescription,
     OpaqueFunction,
 )
 from launch.conditions import IfCondition
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
-from launch_ros.descriptions import ComposableNode
+from launch_ros.descriptions import ComposableNode, ParameterFile
 
 
 def launch_setup(context, *args, **kwargs):
@@ -19,78 +17,68 @@ def launch_setup(context, *args, **kwargs):
     if context.environment.get("DEPTHAI_DEBUG") == "1":
         log_level = "debug"
 
-    params_file = LaunchConfiguration("params_file")
-    depthai_prefix = get_package_share_directory("depthai_ros_driver")
+    params_file = ParameterFile(LaunchConfiguration("params_file"), allow_substs=True)
+    ffmpeg_params_file = ParameterFile(
+        LaunchConfiguration("ffmpeg_params_file"), allow_substs=True
+    )
 
     name = LaunchConfiguration("name").perform(context)
     namespace = LaunchConfiguration("namespace").perform(context)
+    enable_pointcloud = LaunchConfiguration("enable_pointcloud").perform(context) == "true"
 
     rgb_topic_name = name + "/rgb/image_raw"
     if LaunchConfiguration("rectify_rgb").perform(context) == "true":
         rgb_topic_name = name + "/rgb/image_rect"
 
-    parent_frame = LaunchConfiguration("parent_frame", default="oak-d-base-frame")
-    cam_pos_x = LaunchConfiguration("cam_pos_x", default="0.0")
-    cam_pos_y = LaunchConfiguration("cam_pos_y", default="0.0")
-    cam_pos_z = LaunchConfiguration("cam_pos_z", default="0.0")
-    cam_roll = LaunchConfiguration("cam_roll", default="0.0")
-    cam_pitch = LaunchConfiguration("cam_pitch", default="0.0")
-    cam_yaw = LaunchConfiguration("cam_yaw", default="0.0")
-    imu_from_descr = LaunchConfiguration("imu_from_descr", default="false")
-    publish_tf_from_calibration = LaunchConfiguration(
-        "publish_tf_from_calibration", default="false"
-    )
-    override_cam_model = LaunchConfiguration("override_cam_model", default="false")
-
-    tf_params = {}
-    if publish_tf_from_calibration.perform(context) == "true":
-        cam_model = ""
-        if override_cam_model.perform(context) == "true":
-            cam_model = camera_model.perform(context)
-        tf_params = {
-            "camera": {
-                "i_publish_tf_from_calibration": True,
-                "i_tf_tf_prefix": name,
-                "i_tf_camera_model": cam_model,
-                "i_tf_base_frame": name,
-                "i_tf_parent_frame": parent_frame.perform(context),
-                "i_tf_cam_pos_x": cam_pos_x.perform(context),
-                "i_tf_cam_pos_y": cam_pos_y.perform(context),
-                "i_tf_cam_pos_z": cam_pos_z.perform(context),
-                "i_tf_cam_roll": cam_roll.perform(context),
-                "i_tf_cam_pitch": cam_pitch.perform(context),
-                "i_tf_cam_yaw": cam_yaw.perform(context),
-                "i_tf_imu_from_descr": imu_from_descr.perform(context),
-            }
+    # When pointcloud is on, force RGB↔stereo timestamp sync so PointCloudXyzrgbNode
+    # gets matched frames. Mirrors upstream camera.launch.py pointcloud.enable handling.
+    pcl_param_overrides = {}
+    if enable_pointcloud:
+        pcl_param_overrides = {
+            "pipeline_gen": {"i_enable_sync": True},
+            "rgb": {"i_synced": True},
+            "stereo": {"i_synced": True},
         }
 
-    return [
+    container_name = f"/{namespace}/{name}_container" if namespace else f"/{name}_container"
+
+    actions = []
+
+    actions.append(
         ComposableNodeContainer(
             name=name + "_container",
             namespace=namespace,
             package="rclcpp_components",
-            executable="component_container",
+            # _mt (multithreaded) executor — single-threaded `component_container`
+            # was losing 99% of intra-container deliveries between depthai Camera
+            # and image_proc::RectifyNode after external subscriber churn, leaving
+            # image_rect at ~1 Hz until daemon restart.
+            executable="component_container_mt",
             composable_node_descriptions=[
                 ComposableNode(
                     package="depthai_ros_driver",
                     plugin="depthai_ros_driver::Camera",
                     name=name,
                     namespace=namespace,
-                    parameters=[params_file, tf_params],
+                    parameters=[params_file, ffmpeg_params_file, pcl_param_overrides],
                 )
             ],
             arguments=["--ros-args", "--log-level", log_level],
             output="both",
-        ),
+        )
+    )
+
+    actions.append(
         LoadComposableNodes(
             condition=IfCondition(LaunchConfiguration("rectify_rgb")),
-            target_container=name + "_container",
+            target_container=container_name,
             composable_node_descriptions=[
                 ComposableNode(
                     package="image_proc",
                     plugin="image_proc::RectifyNode",
                     name=name + "_rectify_color_node",
                     namespace=namespace,
+                    parameters=[ffmpeg_params_file],
                     remappings=[
                         ("image", name + "/rgb/image_raw"),
                         ("camera_info", name + "/rgb/camera_info"),
@@ -101,12 +89,18 @@ def launch_setup(context, *args, **kwargs):
                             name + "/rgb/image_rect/compressedDepth",
                         ),
                         ("image_rect/theora", name + "/rgb/image_rect/theora"),
+                        ("image_rect/ffmpeg", name + "/rgb/image_rect/ffmpeg"),
+                        ("image_rect/zstd", name + "/rgb/image_rect/zstd"),
                     ],
                 )
             ],
-        ),
+        )
+    )
+
+    actions.append(
         LoadComposableNodes(
-            target_container=name + "_container",
+            condition=IfCondition(LaunchConfiguration("enable_pointcloud")),
+            target_container=container_name,
             composable_node_descriptions=[
                 ComposableNode(
                     package="depth_image_proc",
@@ -121,8 +115,10 @@ def launch_setup(context, *args, **kwargs):
                     ],
                 ),
             ],
-        ),
-    ]
+        )
+    )
+
+    return actions
 
 
 def generate_launch_description():
@@ -130,34 +126,16 @@ def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument("name", default_value="oak"),
         DeclareLaunchArgument("namespace", default_value="", description="Namespace for the nodes."),
-        DeclareLaunchArgument("camera_model", default_value="OAK-D"),
-        DeclareLaunchArgument("parent_frame", default_value="oak-d-base-frame"),
-        DeclareLaunchArgument("cam_pos_x", default_value="0.0"),
-        DeclareLaunchArgument("cam_pos_y", default_value="0.0"),
-        DeclareLaunchArgument("cam_pos_z", default_value="0.0"),
-        DeclareLaunchArgument("cam_roll", default_value="0.0"),
-        DeclareLaunchArgument("cam_pitch", default_value="0.0"),
-        DeclareLaunchArgument("cam_yaw", default_value="0.0"),
         DeclareLaunchArgument(
             "params_file",
             default_value=os.path.join(depthai_prefix, "config", "rgbd.yaml"),
         ),
-        DeclareLaunchArgument("rectify_rgb", default_value="False"),
-        DeclareLaunchArgument("rsp_use_composition", default_value="true"),
+        DeclareLaunchArgument("ffmpeg_params_file"),
+        DeclareLaunchArgument("rectify_rgb", default_value="true"),
         DeclareLaunchArgument(
-            "publish_tf_from_calibration",
+            "enable_pointcloud",
             default_value="false",
-            description="Enables TF publishing from camera calibration file.",
-        ),
-        DeclareLaunchArgument(
-            "imu_from_descr",
-            default_value="false",
-            description="Enables IMU publishing from URDF.",
-        ),
-        DeclareLaunchArgument(
-            "override_cam_model",
-            default_value="false",
-            description="Overrides camera model from calibration file.",
+            description="Load depth_image_proc::PointCloudXyzrgbNode and force RGB/stereo sync.",
         ),
     ]
 

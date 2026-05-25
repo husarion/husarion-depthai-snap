@@ -1,32 +1,26 @@
 #!/bin/bash -e
 
 # Define a function to log and echo messages
-source $SNAP/usr/bin/utils.sh
+source "$SNAP/usr/bin/utils.sh"
 
-$SNAP/usr/bin/install_hook_ros.sh
+"$SNAP/usr/bin/install_hook_ros.sh"
 
-snapctl set driver.name=oak
-snapctl set driver.parent-frame=camera_mount_link
-snapctl set driver.camera-model=OAK-D
-snapctl set driver.cam-pos-x=0.0
-snapctl set driver.cam-pos-y=0.0
-snapctl set driver.cam-pos-z=0.0
-snapctl set driver.cam-roll=0.0
-snapctl set driver.cam-pitch=0.0
-snapctl set driver.cam-yaw=0.0
-snapctl set driver.camera-params=default
-snapctl set driver.ffmpeg-params=default
-snapctl set driver.startup-delay=10
+# driver.* defaults — shared with post-refresh so new params introduced in a
+# later snap revision are auto-applied (without clobbering user-modified values).
+"$SNAP/usr/bin/apply_defaults.sh"
 
 if ! snapctl is-connected raw-usb; then
   log "Plug 'raw-usb' isn't connected, please run:"
   log "sudo snap connect ${SNAP_NAME}:raw-usb"
 fi
 
-# copy params
-cp -r ${SNAP}/usr/share/${SNAP_NAME}/config/*.yaml ${SNAP_COMMON}/
+# Bundled YAML presets live in $SNAP_DATA (per-revision) so they're refreshed
+# on every snap upgrade — see snap/hooks/post-refresh. User custom presets in
+# $SNAP_DATA are preserved by snapd's data migration across refreshes.
+cp "${SNAP}/usr/share/${SNAP_NAME}/config/"*.yaml "${SNAP_DATA}/"
 
-cp -r "$SNAP/usr/bin/post_install.sh" "${SNAP_COMMON}/"
+# post_install.sh stays in $SNAP_COMMON — it's a user-facing helper, not a runtime preset.
+cp "$SNAP/usr/bin/post_install.sh" "${SNAP_COMMON}/"
 
 # # # copy meshes to shared folder
 # log "copy meshes to '${SNAP_COMMON}/ros2_ws/'"

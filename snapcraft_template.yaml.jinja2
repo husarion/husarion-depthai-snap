@@ -5,10 +5,10 @@ summary: OAK-x cameras driver for Husarion robots
 icon: snap/gui/icon.png
 description: |
   The `husarion-depthai` snap contains all the necessary software to bring the OAK-x cameras up.
-  
+
   **Tip**
 
-  The default camera parameters do not include depth image computation. To enable depth topic transmission, set the parameter to `i_pipeline_type: RGBD`. Path to params file: `/var/snap/husarion-depthai/common/camera-params-default.yaml`
+  The default camera parameters do not include depth image computation. To enable depth topic transmission, set the parameter to `i_pipeline_type: RGBD`. Path to params file: `/var/snap/husarion-depthai/current/camera-params-default.yaml`
 
   **Parameters**
 
@@ -26,18 +26,14 @@ description: |
 
   The `driver` contains the following keys:
 
-  * name: `oak`
-  * parent-frame: `oak-d-base-frame`
-  * camera-model: `OAK-D`
-  * cam-pos-x: `0.0`
-  * cam-pos-y: `0.0`
-  * cam-pos-z: `0.0`
-  * cam-roll: `0.0`
-  * cam-pitch: `0.0`
-  * cam-yaw: `0.0`
-  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/common/camera-params-<VALUE>.yaml`
-  * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-camera/common/ffmpeg-params-<VALUE>.yaml`
-  
+  * name: `oak` - ROS 2 node name; also the prefix in published topic paths (`/<ns>/<name>/rgb/...`).
+  * camera-model: `OAK-D-PRO` - one of `OAK-D`, `OAK-D-LITE`, `OAK-1`, `OAK-1-LITE`, `OAK-D-PRO`, `OAK-D-PRO-W`. Used for snap-side validation; the depthai driver autodetects the actual hardware.
+  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`. Bundled presets are refreshed on every `snap refresh`; user-added presets in this directory are preserved.
+  * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-depthai/current/ffmpeg-params-<VALUE>.yaml`
+  * startup-delay: `30` - Seconds to sleep on first launch after a fresh boot (uptime < startup-delay+60s). Set to `0` or `''` to disable. Workaround for depthai-ros USB cold-start race; tune higher (60+) for slow-booting hosts, lower (10-15) for fast x86.
+  * enable-pointcloud: `false` - Load `depth_image_proc::PointCloudXyzrgbNode` and force RGB/stereo timestamp sync. Requires RGBD pipeline (e.g. `camera-params=oak-d-pro`).
+  * rectify-rgb: `true` - Load `image_proc::RectifyNode` to publish `<name>/rgb/image_rect` alongside the raw stream. Set `false` to skip rectification (saves a bit of CPU; `image_raw` is always published either way).
+
   To set the parameters, use the snap set command, e.g.,
 
      snap set husarion-depthai driver.namespace=robot
@@ -157,6 +153,21 @@ parts:
       set -eu
       craftctl default
 
+      # Ubuntu Noble universe ships libamdhip64-5 (5.7.1-3, verified 2026-05) with
+      # PT_GNU_STACK=RWE — the binary requests an executable stack. Snap strict
+      # confinement (apparmor) refuses dlopen on such libs, so the daemon would
+      # crash on first use of OpenCV/cv-bridge/ffmpeg paths that pull HIP transitively.
+      # `execstack -c` clears the X bit (post-fix flags become RW), letting the
+      # library load under strict confinement.
+      #
+      # Verify before bumping ros-{distro}-depthai-ros:
+      #   apt-get download libamdhip64-5 && dpkg -x libamdhip64-5*.deb /tmp/x
+      #   readelf -l /tmp/x/usr/lib/x86_64-linux-gnu/libamdhip64.so.5 | grep GNU_STACK
+      # If RW upstream → this whole part can be removed. Until then, required.
+      #
+      # Scope: only libamdhip64.so* needs the fix; no other staged .so has execstack
+      # ON in current builds (re-scan with `readelf -l <so> | grep GNU_STACK`).
+      # On arm64 the path doesn't exist (HIP isn't packaged for arm64) — loop is a no-op.
       choosen_files=(
         usr/lib/x86_64-linux-gnu/libamdhip64.so*
       )

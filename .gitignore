@@ -1,3 +1,10 @@
 squashfs-root/
+.vscode/
+
 husarion-depthai*
 exported.txt
+
+# Generated from snapcraft_template.yaml.jinja2 by render_template.py
+snap/snapcraft.yaml
+
+__pycache__/

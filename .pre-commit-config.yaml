@@ -1,0 +1,39 @@
+# Run locally:  pre-commit install   (one-time, sets up the git hook)
+# Or manually:  pre-commit run --all-files
+# CI mirrors this via .github/workflows/ci.yaml.
+
+repos:
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        # Default pattern catches *.sh; add hook scripts (which have no extension).
+        files: '^(snap/hooks/(configure|install|post-refresh)|snap/local/.*\.sh)$'
+        # SC1091: utils.sh / ros_setup.sh / configure_hook_ros.sh ship from
+        # husarion-snap-common at snap-build time, not in this repo.
+        # SC2034: arrays like VALID_DRIVER_KEYS are passed by name (ARRAY[@])
+        # into validate_* — ShellCheck can't see the indirection.
+        # SC2010: `ls | grep` only in a diagnostic-message error path; not worth
+        # the rewrite to a pure-bash glob.
+        args: [--exclude=SC1091, --exclude=SC2034, --exclude=SC2010]
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        files: '^(\.github/workflows/.*\.yaml|snap/local/.*\.yaml)$'
+        args:
+          - '-d'
+          - '{extends: default, rules: {line-length: {max: 140}, document-start: disable, truthy: {check-keys: false}, comments-indentation: disable}}'
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Compile-checks Python: catches syntax regressions in depthai.launch.py
+      # and render_template.py without needing a full Python lint stack.
+      - id: check-ast
+        files: '\.py$'
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        # Preserve trailing spaces inside *.md (Markdown line breaks).
+        exclude: '\.md$'
