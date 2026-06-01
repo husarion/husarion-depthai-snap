@@ -99,6 +99,7 @@ parts:
       - ffmpeg
       - ros-{{ ros_distro }}-cv-bridge
       - ros-{{ ros_distro }}-rmw-cyclonedds-cpp
+      - ros-{{ ros_distro }}-rmw-zenoh-cpp
       # needed to run ffmpeg without errors:
       - libpulse-dev
       - libblas3
@@ -122,7 +123,7 @@ parts:
   husarion-snap-common:
     plugin: dump
     source: https://github.com/husarion/husarion-snap-common
-    source-branch: "0.5.0"
+    source-tag: "0.8.0"
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
@@ -130,7 +131,10 @@ parts:
       - curl
     organize:
       'local-ros/*.sh': usr/bin/
-      'local-ros/*.xml': usr/share/husarion-snap-common/config/
+      'local-ros/rmw/fastdds/*.xml': usr/share/husarion-snap-common/config/rmw/fastdds/
+      'local-ros/rmw/cyclonedds/*.xml': usr/share/husarion-snap-common/config/rmw/cyclonedds/
+      'local-ros/rmw/zenoh/*.json5': usr/share/husarion-snap-common/config/rmw/zenoh/
+      'local-ros/rmw/zenoh-router/*.json5': usr/share/husarion-snap-common/config/rmw/zenoh-router/
       'local-ros/ros.env': usr/share/husarion-snap-common/config/
     override-build: |
       craftctl default

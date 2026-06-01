@@ -51,6 +51,11 @@ for param in camera-params ffmpeg-params; do
     fi
 done
 
+# depthai_ros driver is a plain rclcpp node — RMW-agnostic, including zenoh.
+# The husarion-snap-common zenoh gate exists for snaps that pair zenoh with a
+# non-zenoh bridge (e.g. micro_ros_agent); depthai has no such bridge, so opt in.
+export HSC_ALLOW_ZENOH=1
+
 "$SNAP/usr/bin/configure_hook_ros.sh"
 
 # restart the daemon with new ROS 2 config
