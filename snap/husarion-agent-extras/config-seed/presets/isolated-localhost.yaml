@@ -1,0 +1,7 @@
+label: "Isolated (localhost only)"
+description: "Bench/dev: FastDDS confined to this host (discovery LOCALHOST). No cross-machine ROS traffic."
+fields:
+  RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+  RMW_PROFILE: udp
+  ROS_DOMAIN_ID: "0"
+  ROS_AUTOMATIC_DISCOVERY_RANGE: LOCALHOST

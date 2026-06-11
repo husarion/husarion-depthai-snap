@@ -1,0 +1,8 @@
+label: "Indoor zenoh (router)"
+description: "Single-robot indoor; zenoh over the host router. Crosses the docker↔snap boundary."
+requires: [zenoh-router]   # info only — surfaced as a notice, NOT enforced
+fields:
+  RMW_IMPLEMENTATION: rmw_zenoh_cpp
+  RMW_PROFILE: default            # the per-node default this preset cascades
+  ROS_DOMAIN_ID: "0"
+  ROS_AUTOMATIC_DISCOVERY_RANGE: SUBNET

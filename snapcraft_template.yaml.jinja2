@@ -41,6 +41,14 @@ description: |
 grade: stable
 confinement: strict
 base: {{ 'core22' if ros_distro == 'humble' else 'core24' }}
+# Content interface + same-publisher auto-connect for zero-config snap chaining
+# (SPEC-content-chain).
+assumes: [snapd2.43]
+
+# Chained-agents leaf follower of the rosbot snap's cascading primary on :7444.
+# No HA_PEER_BIND (no downstream subscribers).
+environment:
+  HA_TIER: "robot"
 
 contact: https://github.com/husarion/depthai-snap/issues
 issues: https://github.com/husarion/depthai-snap/issues
@@ -56,6 +64,16 @@ plugs:
     interface: shared-memory
     shared-memory: shm-slot
     private: false
+  # Zero-config snap chaining (SPEC-content-chain): when installed alongside the
+  # rosbot snap (same publisher), snapd auto-connects this plug to rosbot's
+  # agent-chain slot; connect-plug-agent-chain then self-joins via the CSR
+  # drop-box. `default-provider` is an install hint; the matcher is
+  # publisher-id + the content tag.
+  agent-chain:
+    interface: content
+    content: husarion-agent-chain
+    target: $SNAP_COMMON/agent-chain-upstream
+    default-provider: rosbot
 
 apps:
 
@@ -84,6 +102,21 @@ apps:
 
   stop:
     command: usr/bin/stop_launcher.sh
+
+  # Chained-agents leaf follower. Subscribes to the rosbot snap's cascading
+  # primary on :7444 (which follows the cockpit BIC on :7443). A network change
+  # cascades cockpit BIC → rosbot → husarion-depthai (no listener); the seeded
+  # hooks/network calls `snapctl set ros.<key>` against this snap's own config.
+  husarion-agent:
+    command: usr/bin/husarion_agent_launcher.sh
+    daemon: simple
+    install-mode: enable
+    restart-condition: always
+    plugs: [network, network-bind]
+
+  peer-join:
+    command: usr/bin/husarion-agent
+    plugs: [network]
 
 parts:
 
@@ -124,7 +157,10 @@ parts:
   husarion-snap-common:
     plugin: dump
     source: https://github.com/husarion/husarion-snap-common
-    source-tag: "0.8.0"
+    # 0.10.0 adds the files-first husarion-agent launcher + the content-chain
+    # launcher logic + content-*.sh helpers (SPEC-content-chain). depthai gains
+    # the embedded husarion-agent for the first time here.
+    source-tag: "0.10.0"
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
@@ -137,6 +173,15 @@ parts:
       'local-ros/rmw/zenoh/*.json5': usr/share/husarion-snap-common/config/rmw/zenoh/
       'local-ros/rmw/zenoh-router/*.json5': usr/share/husarion-snap-common/config/rmw/zenoh-router/
       'local-ros/ros.env': usr/share/husarion-snap-common/config/
+      # husarion-agent shared substrate (files-first): fetch-binary.sh (build-time,
+      # consumed by the husarion-agent part) + the files-first launcher (the agent
+      # daemon command). Files-first config (hooks/manifests) ships per-snap via
+      # husarion-agent-extras/config-seed/.
+      'husarion-agent/fetch-binary.sh':            usr/share/husarion-snap-common/husarion-agent/fetch-binary.sh
+      'husarion-agent/launcher.sh':                usr/bin/husarion_agent_launcher.sh
+      'husarion-agent/configure-snap-to-files.sh': usr/bin/configure-snap-to-files.sh
+      # Content-interface chaining helpers (SPEC-content-chain).
+      'husarion-agent/content-*.sh':               usr/bin/
     override-build: |
       craftctl default
       curl -L "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${CRAFT_ARCH_BUILD_FOR}" -o $CRAFT_PART_BUILD/yq
@@ -144,7 +189,29 @@ parts:
       craftctl default
       cp $CRAFT_PART_BUILD/yq $CRAFT_PRIME/usr/bin/yq
       chmod +x $CRAFT_PRIME/usr/bin/yq
-      rm -rf $CRAFT_PRIME/local-ros
+      rm -rf $CRAFT_PRIME/local-ros $CRAFT_PRIME/husarion-agent
+
+  # Chained-agents binary + per-snap files-first config seed. The binary fetch +
+  # files-first launcher ship from husarion-snap-common; only the config-seed
+  # (identity + follow.yaml + the leaf network/rmw hooks + manifests) is
+  # per-snap. depthai is a leaf follower (role:leaf, follows the rosbot snap's
+  # :7444). SPEC-content-chain Phase 4.
+  husarion-agent:
+    plugin: dump
+    after: [husarion-snap-common]
+    source: snap/husarion-agent-extras/
+    source-type: local
+    build-environment:
+      - HA_VERSION: "1.2.0"
+    build-packages:
+      - curl
+    override-build: |
+      set -euo pipefail
+      craftctl default
+      bash "${CRAFT_STAGE}/usr/share/husarion-snap-common/husarion-agent/fetch-binary.sh"
+      install -Dm755 "${CRAFT_PART_BUILD}/husarion-agent" "${CRAFT_PART_INSTALL}/usr/bin/husarion-agent"
+    organize:
+      'config-seed/': usr/share/husarion-agent/config-seed/
 
   fix-execstack:
     plugin: nil
@@ -152,6 +219,7 @@ parts:
       - husarion-depthai
       - local-files
       - husarion-snap-common
+      - husarion-agent
     build-packages:
       - execstack
     override-prime: |

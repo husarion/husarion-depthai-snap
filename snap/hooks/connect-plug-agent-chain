@@ -1,0 +1,8 @@
+#!/bin/sh
+# connect-plug-agent-chain — fires when this follower's agent-chain plug connects
+# to the rosbot snap's slot (auto on a same-publisher store install; manual
+# `snap connect` on a sideload). Self-join via the CSR drop-box, then restart the
+# in-snap husarion-agent so its follow tasks pick up the certs. Idempotent.
+# SPEC-content-chain Phase 4.
+set -eu
+[ -x "$SNAP/usr/bin/content-join-follower.sh" ] && "$SNAP/usr/bin/content-join-follower.sh" || true

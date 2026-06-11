@@ -1,0 +1,35 @@
+concern: network
+title: ROS networking
+icon: network
+fields:
+  - { key: ROS_DOMAIN_ID, scope: shared, type: integer, min: 0, max: 232, default: 0, label: ROS domain ID }
+  - { key: ROS_NAMESPACE, scope: shared, type: string, pattern: '^[0-9a-z_/{}-]{0,64}$', default: rosbot, label: Namespace, help: "Literal, or an identity pattern using {model}/{serial}/{index} — expanded locally on each node." }
+  - key: ROS_AUTOMATIC_DISCOVERY_RANGE
+    scope: shared
+    type: enum
+    options: [SUBNET, LOCALHOST, OFF, SYSTEM_DEFAULT]
+    default: SUBNET
+    label: Automatic discovery range
+    help: "How far ROS 2 looks for peers: SUBNET (whole LAN), LOCALHOST (this host only), OFF, or SYSTEM_DEFAULT. ROS 2 Jazzy+."
+  - key: RMW_IMPLEMENTATION
+    scope: shared
+    type: enum
+    options: [rmw_fastrtps_cpp, rmw_cyclonedds_cpp, rmw_zenoh_cpp]
+    default: rmw_fastrtps_cpp
+    label: RMW implementation
+  - key: RMW_PROFILE
+    scope: local
+    type: enum
+    label: Active RMW profile
+    help: "Lists only profiles for the selected RMW implementation."
+    default_by_impl: {rmw_fastrtps_cpp: udp, rmw_cyclonedds_cpp: udp-lo, rmw_zenoh_cpp: default}
+    dynamic:
+      from: rmw
+      as_: filename
+      scope_by:
+        field: RMW_IMPLEMENTATION
+        map:
+          rmw_fastrtps_cpp: fastdds
+          rmw_cyclonedds_cpp: cyclonedds
+          rmw_zenoh_cpp: zenoh
+  - { key: ROS_STATIC_PEERS, scope: local, type: string, default: "", label: Static peers }

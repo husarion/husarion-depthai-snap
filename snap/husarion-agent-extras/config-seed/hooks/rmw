@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+# Bridge the files-first RMW concern into the location the snap's ROS driver
+# actually reads. The agent SYNCS profiles into its own config/rmw/ (= the
+# concern dir), but the rosbot/rplidar/depthai driver loads them from $SNAP_COMMON/rmw/.
+# Mirror config/rmw/ -> $SNAP_COMMON/rmw/ so propagated/edited profiles take
+# effect. (A profile-content change applies to the running driver on the next
+# network re-apply / driver restart.)
+SRC="${HUSARION_AGENT_CONCERN_DIR:-${HUSARION_AGENT_CONFIG_DIR:-}/rmw}"
+DST="${SNAP_COMMON:-}/rmw"
+
+if [ -z "${SNAP_COMMON:-}" ] || [ ! -d "$SRC" ]; then
+  echo "rmw hook: no SNAP_COMMON or missing source ($SRC) — nothing to mirror"
+  exit 0
+fi
+
+for sub in cyclonedds fastdds zenoh zenoh-router; do
+  [ -d "$SRC/$sub" ] || continue
+  mkdir -p "$DST/$sub"
+  # add / update
+  for f in "$SRC/$sub"/*; do
+    [ -f "$f" ] || continue
+    cp -f "$f" "$DST/$sub/"
+  done
+  # prune consumed files that no longer exist in the synced set (mirror deletes)
+  for g in "$DST/$sub"/*; do
+    [ -f "$g" ] || continue
+    [ -f "$SRC/$sub/$(basename "$g")" ] || rm -f "$g"
+  done
+done
+echo "rmw hook: mirrored $SRC -> $DST"

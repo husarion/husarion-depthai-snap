@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+RMW="${HUSARION_AGENT_RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
+PROFILE="${HUSARION_AGENT_RMW_PROFILE:-}"
+# zenoh acceptance / zenoh-router toggle is the snap's own call (see
+# rosbot/hooks/network). We just forward the transport token.
+[ -n "${HUSARION_AGENT_ROS_DOMAIN_ID:-}" ] && snapctl set ros.domain-id="$HUSARION_AGENT_ROS_DOMAIN_ID" || true
+[ -n "${HUSARION_AGENT_ROS_NAMESPACE:-}" ] && snapctl set ros.namespace="$HUSARION_AGENT_ROS_NAMESPACE" || true
+# peer-discovery reach: snap key wants lowercase (off/localhost/subnet/system_default)
+[ -n "${HUSARION_AGENT_ROS_AUTOMATIC_DISCOVERY_RANGE:-}" ] && snapctl set ros.automatic-discovery-range="$(printf '%s' "$HUSARION_AGENT_ROS_AUTOMATIC_DISCOVERY_RANGE" | tr 'A-Z' 'a-z')" || true
+# Canonical "<kind>/<name>" transport token so the chosen RMW profile reaches
+# the snap (see rosbot/hooks/network for the rationale).
+case "$RMW" in
+  rmw_fastrtps_cpp)   KIND=fastdds ;;
+  rmw_cyclonedds_cpp) KIND=cyclonedds ;;
+  rmw_zenoh_cpp)      KIND=zenoh ;;
+  *)                  KIND="" ;;
+esac
+if [ -n "$KIND" ] && [ -n "$PROFILE" ]; then
+  T="$KIND/$PROFILE"
+else
+  T="$RMW"
+fi
+snapctl set ros.transport="$T" 2>/dev/null || true
+snapctl set ros.static-peers="${HUSARION_AGENT_ROS_STATIC_PEERS:-}" 2>/dev/null || true
+echo "depthai network hook: ros.transport=$T peers='${HUSARION_AGENT_ROS_STATIC_PEERS:-}' (RMW=$RMW profile=${PROFILE:-none})"
+# Fire the snap configure hook so ros.env regenerates + daemon restarts
+# (snapctl set from a daemon-child doesn't auto-fire it). depthai has no mavlink
+# backend, so its configure rejects zenoh — tolerate that (|| true): the leaf
+# stays on its prior transport and the rest of the chain is unaffected.
+[ -n "${SNAP:-}" ] && [ -x "${SNAP}/meta/hooks/configure" ] && "${SNAP}/meta/hooks/configure" || true

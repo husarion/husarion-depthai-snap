@@ -1,0 +1,7 @@
+#!/bin/sh
+# disconnect-plug-agent-chain — fires when this follower's agent-chain plug
+# disconnects (snap disconnect / removal). While the content mount is still live,
+# drop a revoke/<cn> marker so rosbot auto-revokes this follower's content cert.
+# Best-effort. SPEC-content-chain Phase 4 / §Disconnect/revoke.
+set -eu
+[ -x "$SNAP/usr/bin/content-revoke-self.sh" ] && "$SNAP/usr/bin/content-revoke-self.sh" || true
