@@ -33,6 +33,24 @@ for f in "${SNAP_COMMON}"/camera-params-*.yaml "${SNAP_COMMON}"/ffmpeg-params-*.
     fi
 done
 
+# Seed the rmw profile tree if absent. An instance upgraded from a PRE-AGENT
+# depthai (which never had $SNAP_COMMON/rmw/) would otherwise fail the configure
+# hook: snap-common 0.10.0's transport resolver maps ros.transport=udp etc. to
+# $SNAP_COMMON/rmw/fastdds/<name>.xml, which only the install hook seeds — and a
+# refresh runs THIS hook, not install. Seed just the tree (no ros.* defaults, so
+# user network config is untouched). Idempotent: only when missing.
+if [ ! -d "${SNAP_COMMON}/rmw/fastdds" ]; then
+    _RMW_SRC="${SNAP}/usr/share/husarion-snap-common/config/rmw"
+    if [ -d "$_RMW_SRC" ]; then
+        for _sub in fastdds cyclonedds zenoh zenoh-router; do
+            [ -d "${_RMW_SRC}/${_sub}" ] || continue
+            mkdir -p "${SNAP_COMMON}/rmw/${_sub}"
+            cp -rf "${_RMW_SRC}/${_sub}/." "${SNAP_COMMON}/rmw/${_sub}/"
+        done
+        log "Seeded rmw profile tree on refresh (upgraded from a pre-agent depthai)"
+    fi
+fi
+
 # Always overwrite bundled presets with the version shipped in this revision.
 cp "${SNAP}/usr/share/${SNAP_NAME}/config"/*.yaml "${SNAP_DATA}/"
 
