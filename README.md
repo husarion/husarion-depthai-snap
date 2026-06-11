@@ -98,3 +98,37 @@ cat /var/snap/husarion-depthai/common/ros.env  # exact env exported by the confi
 ## Architecture and contributing
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the snap layout and [CLAUDE.md](CLAUDE.md) for the working rules (template re-render, parameter wiring, pitfalls).
+
+## Managing the embedded husarion-agent
+
+This snap embeds **husarion-agent** as a chain **follower** (leaf): it receives
+ROS networking config (namespace / domain / RMW profiles) from the rosbot snap
+and applies it locally. Chaining is automatic — there is nothing to configure.
+
+### Pairing
+
+**Same host (zero-config).** Installed alongside the rosbot snap from the store
+(same publisher), snapd auto-connects this snap's `agent-chain` plug to rosbot
+and it self-joins via the CSR drop-box. Verify on the robot:
+
+    rosbot.peer-join peer list       # this snap listed, origin: content
+
+Sideloaded / `snap try` installs need a one-time connect:
+
+    sudo snap connect husarion-depthai:agent-chain rosbot:agent-chain
+
+Disconnecting or removing this snap auto-revokes its cert on rosbot.
+
+### Config propagation
+
+Change ROS network params (namespace / domain / RMW) on the **chain owner** (the
+cockpit host, or the rosbot snap when standalone) — they cascade here
+automatically and this snap's driver restarts on the new settings. RMW profiles
+published on rosbot reach this follower's `config/rmw/` and are mirrored to the
+path the driver reads. The content interface is **same-host only**; chaining to
+an agent on another host uses the CLI (`husarion-depthai.peer-join join --primary …`).
+
+### Inspecting
+
+This follower's cert bundle lives under `$SNAP_COMMON/peer-certs/`. The chain is
+inspected from the provider: `rosbot.peer-join peer list`.
