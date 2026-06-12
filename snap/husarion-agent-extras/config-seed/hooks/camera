@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+set_drv() { [ -n "$2" ] && snapctl set "driver.$1=$2" 2>/dev/null || true; }
+set_drv camera-model      "${HUSARION_AGENT_CAMERA_MODEL:-}"
+set_drv camera-params     "${HUSARION_AGENT_CAMERA_PARAMS:-}"
+set_drv name              "${HUSARION_AGENT_NAME:-}"
+set_drv enable-pointcloud "${HUSARION_AGENT_ENABLE_POINTCLOUD:-}"
+set_drv rectify-rgb       "${HUSARION_AGENT_RECTIFY_RGB:-}"
+echo "depthai camera hook: model=${HUSARION_AGENT_CAMERA_MODEL:-?} params=${HUSARION_AGENT_CAMERA_PARAMS:-?}"
+[ -n "${SNAP:-}" ] && [ -x "${SNAP}/meta/hooks/configure" ] && "${SNAP}/meta/hooks/configure" || true

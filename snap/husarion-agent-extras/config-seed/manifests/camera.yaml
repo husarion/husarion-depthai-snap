@@ -1,0 +1,9 @@
+concern: camera
+title: Camera driver
+icon: camera
+fields:
+  - { key: CAMERA_MODEL, scope: shared, type: enum, options: [OAK-D, OAK-D-LITE, OAK-1, OAK-1-LITE, OAK-D-PRO, OAK-D-PRO-W], default: OAK-D-PRO, label: Camera model, help: "OAK-x model — snap-side validation only; the driver autodetects the hardware." }
+  - { key: CAMERA_PARAMS, scope: shared, type: enum, options: [default, oak-1-lite, oak-d-pro, oak-d-pro-poe, oak-d-pro-slam], default: default, label: Pipeline preset, help: "Camera pipeline (depth / streaming / SLAM). default = RGB only. User camera-params-<X>.yaml also accepted." }
+  - { key: NAME, scope: shared, type: string, pattern: '^[0-9a-z_-]{0,20}$', default: oak, label: Node name, help: "ROS node name + topic prefix (/<ns>/<name>/rgb/...)." }
+  - { key: ENABLE_POINTCLOUD, scope: shared, type: enum, options: ["false","true"], default: "false", label: Point cloud, help: "Load the RGB-D point-cloud node. Requires an RGBD pipeline (e.g. Pipeline preset = oak-d-pro)." }
+  - { key: RECTIFY_RGB, scope: shared, type: enum, options: ["true","false"], default: "true", label: Rectify RGB, help: "Publish <name>/rgb/image_rect alongside the raw stream." }
