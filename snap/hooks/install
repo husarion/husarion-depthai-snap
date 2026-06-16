@@ -21,6 +21,8 @@ cp "${SNAP}/usr/share/${SNAP_NAME}/config/"*.yaml "${SNAP_DATA}/"
 
 # post_install.sh stays in $SNAP_COMMON — it's a user-facing helper, not a runtime preset.
 cp "$SNAP/usr/bin/post_install.sh" "${SNAP_COMMON}/"
+# On-device operator/AI usage guide (regenerated from the snap each install/refresh).
+cp -f "$SNAP/usr/share/husarion-depthai/AGENTS.md" "${SNAP_COMMON}/AGENTS.md"
 
 # # # copy meshes to shared folder
 # log "copy meshes to '${SNAP_COMMON}/ros2_ws/'"

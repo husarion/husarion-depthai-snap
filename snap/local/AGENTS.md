@@ -1,0 +1,56 @@
+# husarion-depthai snap — operator guide
+
+On-device usage reference for the **installed** `husarion-depthai` snap, written
+for AI assistants and operators working on the robot. It is regenerated from the
+snap on every install/refresh — do not edit it (changes are overwritten).
+
+## What this is
+ROS 2 driver for Luxonis OAK-x depth cameras on Husarion robots. Publishes RGB
+(and, when enabled, depth + pointcloud) under `<namespace>/<name>/...` — default
+node name `oak`, so e.g. `/rosbot/oak/rgb/image_raw`.
+
+## First run
+    sudo /var/snap/husarion-depthai/common/post_install.sh    # one-time setup
+    sudo snap set husarion-depthai driver.camera-model=<model>   # e.g. OAK-D-PRO
+    sudo husarion-depthai.start
+
+## Configuration — two ways
+1. **Husarion cockpit (recommended in a cockpit install).** The ROS network
+   (RMW, `ROS_DOMAIN_ID`, namespace) is set on the chain **owner** — the
+   `rosbot` snap or the cockpit host — from the WebUI **Manage** tab, and
+   propagates here automatically. Do **not** hand-set `ros.*` here in a cockpit
+   install. The operator camera/streaming UI ingests this snap's image topic.
+2. **Direct / standalone:** `sudo snap set husarion-depthai <key>=<value>`:
+   - `driver.name` — node name + topic prefix.
+   - `driver.camera-model` — e.g. `OAK-D`, `OAK-D-PRO`, `OAK-1` (hardware is
+     auto-detected; this is for validation).
+   - `driver.camera-params` — preset; **`default` has NO depth**, use e.g.
+     `oak-d-pro` for an RGBD pipeline.
+   - `driver.enable-pointcloud`, `driver.rectify-rgb`, `driver.startup-delay`.
+   - `ros.namespace`, `ros.domain-id`, `ros.transport`.
+
+## ROS network / RMW config locations
+- Effective ROS env: `/var/snap/husarion-depthai/common/ros.env`.
+- RMW profile files: `/var/snap/husarion-depthai/common/rmw/`, and the chain
+  config under `/var/snap/husarion-depthai/common/husarion-agent/config/`.
+- `ros.transport` selects FastDDS / CycloneDDS profiles only. **Zenoh reaches
+  this snap through the agent chain** from the owner, not via `ros.transport`.
+
+## Chaining (how it gets its network config)
+Embeds `husarion-agent` as a chain **follower (leaf)**. Installed next to a
+`rosbot` snap (or a cockpit host) it auto-joins over the `agent-chain` content
+interface and inherits the owner's network config — nothing to configure. Set
+the network on the **owner**; it cascades here.
+
+## Apps
+`husarion-depthai.start` · `husarion-depthai.stop` · `husarion-depthai.restart`.
+
+## Gotchas
+- Big frames (1280x720 RGB ≈ 2.7 MB) fragment over UDP; a busy subscriber needs
+  a large DDS receive buffer. A Husarion cockpit install raises the host
+  `net.core.rmem_max` for this — on a bare standalone host, raise it yourself if
+  a subscriber drops frames.
+- Depth is off unless `driver.camera-params` selects an RGBD preset.
+
+## Logs
+    sudo snap logs husarion-depthai -f

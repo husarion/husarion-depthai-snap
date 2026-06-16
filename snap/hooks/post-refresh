@@ -54,6 +54,9 @@ fi
 # Always overwrite bundled presets with the version shipped in this revision.
 cp "${SNAP}/usr/share/${SNAP_NAME}/config"/*.yaml "${SNAP_DATA}/"
 
+# Refresh the on-device operator/AI usage guide from this revision.
+cp -f "$SNAP/usr/share/${SNAP_NAME}/AGENTS.md" "${SNAP_COMMON}/AGENTS.md"
+
 # Apply defaults for driver.* params added in this revision (idempotent —
 # existing user-set values are preserved).
 "$SNAP/usr/bin/apply_defaults.sh"

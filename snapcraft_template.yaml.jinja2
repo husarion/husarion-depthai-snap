@@ -38,6 +38,10 @@ description: |
 
      snap set husarion-depthai driver.namespace=robot
 
+  **Husarion cockpit integration**
+
+  This snap embeds **husarion-agent** as a chain follower (leaf). In a Husarion cockpit setup the ROS network config — RMW (including Zenoh), `ROS_DOMAIN_ID`, and namespace — is set once from the WebUI **Manage** tab on the chain owner and propagated here automatically. The `ros.*` keys above are the standalone / direct-`snap set` path (Zenoh is driven through the agent, not `ros.transport`).
+
 grade: stable
 confinement: strict
 base: {{ 'core22' if ros_distro == 'humble' else 'core24' }}
@@ -151,6 +155,7 @@ parts:
       '*.sh': usr/bin/
       '*.py': usr/bin/
       '*.yaml': usr/share/husarion-depthai/config/
+      'AGENTS.md': usr/share/husarion-depthai/AGENTS.md
       # '*.xml': usr/share/husarion-depthai/config/
       # '*.json': usr/share/husarion-depthai/config/
 
@@ -160,7 +165,7 @@ parts:
     # 0.10.0 adds the files-first husarion-agent launcher + the content-chain
     # launcher logic + content-*.sh helpers (SPEC-content-chain). depthai gains
     # the embedded husarion-agent for the first time here.
-    source-tag: "0.10.0"
+    source-tag: "0.11.0"
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
@@ -202,7 +207,7 @@ parts:
     source: snap/husarion-agent-extras/
     source-type: local
     build-environment:
-      - HA_VERSION: "1.3.1"
+      - HA_VERSION: "1.4.0"
     build-packages:
       - curl
     override-build: |
