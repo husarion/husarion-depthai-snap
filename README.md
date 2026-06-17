@@ -10,12 +10,12 @@ Snap for OAK-x cameras customized for Husarion robots.
 
 ## Apps
 
-| app | description |
-| - | - |
-| `husarion-depthai.start` | Enable + start the `husarion-depthai.daemon` service |
-| `husarion-depthai.stop` | Disable + stop the daemon |
-| `husarion-depthai.restart` | Restart the daemon |
-| `husarion-depthai` | Run in the foreground (stop the daemon first) |
+| app                        | description                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `husarion-depthai.start`   | Enable + start the `husarion-depthai.daemon` service |
+| `husarion-depthai.stop`    | Disable + stop the daemon                            |
+| `husarion-depthai.restart` | Restart the daemon                                   |
+| `husarion-depthai`         | Run in the foreground (stop the daemon first)        |
 
 ## Configuration
 
@@ -42,13 +42,13 @@ Dump current settings: `snap get -d husarion-depthai`
 
 Bundled preset YAMLs live in `/var/snap/husarion-depthai/current/`:
 
-| preset | hardware | pipeline | notes |
-| - | - | - | - |
-| `default` | any OAK-x | RGB | 1280×720 @ 30 fps, raw RGB over USB |
-| `oak-1-lite` | OAK-1-LITE | RGB | single-sensor IMX214 |
-| `oak-d-pro` | OAK-D-PRO | RGBD + IMU + IR | subpixel + lr_check + align_depth |
-| `oak-d-pro-poe` | OAK-D-PRO-POE | RGBD + IMU + IR | MJPEG quality 50, default IP `10.15.20.6` |
-| `oak-d-pro-slam` | OAK-D-PRO | RGBD + IMU + IR | manual exposure for VIO/SLAM feature trackers |
+| preset           | hardware      | pipeline        | notes                                         |
+| ---------------- | ------------- | --------------- | --------------------------------------------- |
+| `default`        | any OAK-x     | RGB             | 1280×720 @ 30 fps, raw RGB over USB           |
+| `oak-1-lite`     | OAK-1-LITE    | RGB             | single-sensor IMX214                          |
+| `oak-d-pro`      | OAK-D-PRO     | RGBD + IMU + IR | subpixel + lr_check + align_depth             |
+| `oak-d-pro-poe`  | OAK-D-PRO-POE | RGBD + IMU + IR | MJPEG quality 50, default IP `10.15.20.6`     |
+| `oak-d-pro-slam` | OAK-D-PRO     | RGBD + IMU + IR | manual exposure for VIO/SLAM feature trackers |
 
 Add your own preset:
 
@@ -101,41 +101,30 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the snap layout and [CLAUDE.md](CLAUD
 
 ## Managing the embedded husarion-agent
 
-This snap embeds **husarion-agent** as a chain **follower** (leaf): it receives
-ROS networking config (namespace / domain / RMW profiles) from the rosbot snap
-and applies it locally. Chaining is automatic — there is nothing to configure.
+This snap embeds **husarion-agent** as a chain **follower** (leaf): it receives ROS networking config (namespace / domain / RMW profiles) from the rosbot snap and applies it locally. Chaining is automatic — there is nothing to configure.
 
 ### Pairing
 
-**Same host (zero-config).** Installed alongside the rosbot snap from the store
-(same publisher), snapd auto-connects this snap's `agent-chain` plug to rosbot
-and it self-joins via the CSR drop-box. Verify on the robot:
+**Same host (zero-config).** Installed alongside the rosbot snap from the store (same publisher), snapd auto-connects this snap's `agent-chain` plug to rosbot and it self-joins via the CSR drop-box. Verify on the robot:
 
-    rosbot.peer-join peer list       # this snap listed, origin: content
+```
+rosbot.peer-join peer list       # this snap listed, origin: content
+```
 
 Sideloaded / `snap try` installs need a one-time connect:
 
-    sudo snap connect husarion-depthai:agent-chain rosbot:agent-chain
+```
+sudo snap connect husarion-depthai:agent-chain rosbot:agent-chain
+```
 
 Disconnecting or removing this snap auto-revokes its cert on rosbot.
 
 ### Config propagation
 
-Change ROS network params (namespace / domain / RMW) on the **chain owner** (the
-cockpit host, or the rosbot snap when standalone) — they cascade here
-automatically and this snap's driver restarts on the new settings. RMW profiles
-published on rosbot reach this follower's `config/rmw/` and are mirrored to the
-path the driver reads. The content interface is **same-host only**; chaining to
-an agent on another host uses the CLI (`husarion-depthai.peer-join join --primary …`).
+Change ROS network params (namespace / domain / RMW) on the **chain owner** (the cockpit host, or the rosbot snap when standalone) — they cascade here automatically and this snap's driver restarts on the new settings. RMW profiles published on rosbot reach this follower's `config/rmw/` and are mirrored to the path the driver reads. The content interface is **same-host only**; chaining to an agent on another host uses the CLI (`husarion-depthai.peer-join join --primary …`).
 
-To add your **own custom RMW profile** (no cockpit), do it once on **rosbot** —
-drop the XML into its `husarion-agent/config/rmw/<impl>/` source and
-`snap set rosbot ros.transport=…`; the file and the selection propagate here
-automatically. Don't add it or set `ros.transport` here directly — the owner
-reconciles a follower's local change away. See the rosbot README §"Adding a
-custom RMW profile and propagating it across the chain".
+To add your **own custom RMW profile** (no cockpit), do it once on **rosbot** — drop the XML into its `husarion-agent/config/rmw/<impl>/` source and `snap set rosbot ros.transport=…`; the file and the selection propagate here automatically. Don't add it or set `ros.transport` here directly — the owner reconciles a follower's local change away. See the rosbot README §"Adding a custom RMW profile and propagating it across the chain".
 
 ### Inspecting
 
-This follower's cert bundle lives under `$SNAP_COMMON/peer-certs/`. The chain is
-inspected from the provider: `rosbot.peer-join peer list`.
+This follower's cert bundle lives under `$SNAP_COMMON/peer-certs/`. The chain is inspected from the provider: `rosbot.peer-join peer list`.

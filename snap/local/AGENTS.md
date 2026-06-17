@@ -10,9 +10,11 @@ ROS 2 driver for Luxonis OAK-x depth cameras on Husarion robots. Publishes RGB
 node name `oak`, so e.g. `/rosbot/oak/rgb/image_raw`.
 
 ## First run
-    sudo /var/snap/husarion-depthai/common/post_install.sh    # one-time setup
-    sudo snap set husarion-depthai driver.camera-model=<model>   # e.g. OAK-D-PRO
-    sudo husarion-depthai.start
+```bash
+sudo /var/snap/husarion-depthai/common/post_install.sh       # one-time setup
+sudo snap set husarion-depthai driver.camera-model=<model>   # e.g. OAK-D-PRO
+sudo husarion-depthai.start
+```
 
 ## Configuration — two ways
 1. **Husarion cockpit (recommended in a cockpit install).** The ROS network
@@ -59,4 +61,6 @@ local change away.
 - Depth is off unless `driver.camera-params` selects an RGBD preset.
 
 ## Logs
-    sudo snap logs husarion-depthai -f
+```bash
+sudo snap logs husarion-depthai -f
+```
