@@ -21,7 +21,7 @@ description: |
 
   * `ros.domain-id`: `0` - Sets the `ROS_DOMAIN_ID` environment variable for the ROS driver.
   * `ros.localhost-only`: `0` - Sets the `ROS_LOCALHOST_ONLY` environment variable for the ROS driver.
-  * `ros.transport`: `udp` - Configures DDS transport. Options are `udp`, `shm`, `builtin` (or `rmw_fastrtps_cpp`), `rmw_cyclonedds_cpp`. Corresponding DDS XML files can be found in the `/var/snap/husarion-depthai/common` directory (custom FastDDS setups can also be created here).
+  * `ros.transport`: `udp` - Configures DDS transport. Options: `udp`, `shm`, `udp-lo`, `fastdds/<name>`, `cyclonedds/<name>`, `builtin` (or `rmw_fastrtps_cpp`), `rmw_cyclonedds_cpp`. Profile files live under `/var/snap/husarion-depthai/common/rmw/<impl>/` (add custom ones there). Zenoh arrives via the agent chain, not `ros.transport`.
   * `ros.namespace`: `(unset)` - Namespace for all topics and transforms.
 
   The `driver` contains the following keys:

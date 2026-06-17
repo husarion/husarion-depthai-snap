@@ -20,7 +20,7 @@ flowchart TB
         subgraph SnapMount["$SNAP (read-only squashfs)"]
             Bin["usr/bin/<br/>launcher.sh, depthai.launch.py,<br/>ros_setup.sh, utils.sh,<br/>configure_hook_ros.sh,<br/>start/stop/restart_launcher.sh,<br/>check_daemon_running.sh,<br/>image_view_launcher.sh,<br/>post_install.sh"]
             Conf["usr/share/husarion-depthai/config/<br/>camera-params-default.yaml<br/>camera-params-oak-d-pro-poe.yaml<br/>ffmpeg-params-default.yaml"]
-            CommonConf["usr/share/husarion-snap-common/config/<br/>dds-config-*.xml, ros.env"]
+            CommonConf["usr/share/husarion-snap-common/config/<br/>rmw/<impl>/*, ros.env"]
             Ros["opt/ros/{humble|jazzy}/ ..."]
         end
 
@@ -29,7 +29,7 @@ flowchart TB
         end
 
         subgraph Common["$SNAP_COMMON = /var/snap/husarion-depthai/common (cross-revision; persist)"]
-            Dds["dds-config-*.xml"]
+            Dds["rmw/<impl>/*.xml"]
             Env["ros.env, ros_snap_args, manage_ros_env.sh"]
             Post["post_install.sh"]
         end
@@ -73,10 +73,10 @@ flowchart TB
 | Camera SDK | `depthai-core` + `depthai_ros_driver` (apt: `ros-{distro}-depthai-ros`) |
 | Image transport | `image_transport`, `image_transport_plugins`, `ffmpeg_image_transport` (libx264) |
 | RMW | FastDDS (default from extension) + Cyclone DDS (`rmw-cyclonedds-cpp`); selected at runtime |
-| DDS XML | FastDDS profiles (UDP, SHM) + CycloneDDS XML (UDP localhost). Files in `husarion-snap-common@0.5.0`. |
+| DDS XML | FastDDS profiles (UDP, SHM) + CycloneDDS XML (UDP localhost). Files in `husarion-snap-common@0.11.0`. |
 | CI | GitHub Actions (`snapcore/action-build`, `snapcore/action-publish`) |
 | Build orchestration | `just` (justfile) |
-| External shared | [`husarion/husarion-snap-common@0.5.0`](https://github.com/husarion/husarion-snap-common) — common ROS configuration / hooks / validators |
+| External shared | [`husarion/husarion-snap-common@0.11.0`](https://github.com/husarion/husarion-snap-common) — common ROS configuration / hooks / validators |
 
 ---
 
@@ -124,9 +124,9 @@ husarion-depthai-snap/
 | `snap/local/*.sh` | `$SNAP/usr/bin/` | part `local-files` (plugin: dump) |
 | `snap/local/*.py` | `$SNAP/usr/bin/` | same as above |
 | `snap/local/*.yaml` | `$SNAP/usr/share/husarion-depthai/config/` (read-only template) → `$SNAP_DATA/` (writable runtime via install + post-refresh hooks) | same as above + hooks |
-| `husarion-snap-common@0.5.0/local-ros/*.sh` | `$SNAP/usr/bin/` | part `husarion-snap-common` (plugin: dump from git) |
-| `husarion-snap-common@0.5.0/local-ros/*.xml` | `$SNAP/usr/share/husarion-snap-common/config/` | same as above |
-| `husarion-snap-common@0.5.0/local-ros/ros.env` | `$SNAP/usr/share/husarion-snap-common/config/` | same as above |
+| `husarion-snap-common@0.11.0/local-ros/*.sh` | `$SNAP/usr/bin/` | part `husarion-snap-common` (plugin: dump from git) |
+| `husarion-snap-common@0.11.0/local-ros/*.xml` | `$SNAP/usr/share/husarion-snap-common/config/` | same as above |
+| `husarion-snap-common@0.11.0/local-ros/ros.env` | `$SNAP/usr/share/husarion-snap-common/config/` | same as above |
 | `yq` from GitHub releases (v4.35.1) | `$SNAP/usr/bin/yq` | override-build + override-prime |
 | apt: `ros-{distro}-depthai-ros` (+ image_transport, ffmpeg, …) | `$SNAP/opt/ros/{distro}/...` | stage-packages in part `husarion-depthai` |
 
@@ -151,7 +151,7 @@ husarion-depthai (snap)
 └── ros.*                                 # shared; handled by configure_hook_ros.sh from snap-common
     ├── domain-id         = 0             # 0..232
     ├── localhost-only    = ''            # 0|1 (humble); allow-unset
-    ├── transport         = udp           # name of dds-config-<VAL>.xml | rmw_fastrtps_cpp | rmw_cyclonedds_cpp
+    ├── transport         = udp           # udp/shm/udp-lo, fastdds/<X>, cyclonedds/<X>, rmw_fastrtps_cpp, rmw_cyclonedds_cpp
     ├── namespace         = ''            # regex ^[0-9a-z_-]{1,20}$ (allow-unset)
     ├── automatic-discovery-range = ''    # subnet|localhost|off|system_default (jazzy only, allow-unset)
     └── static-peers      = ''            # IPv4/IPv6/hostname; ; separated (jazzy only, allow-unset)
@@ -160,7 +160,7 @@ husarion-depthai (snap)
 ### Key file naming conventions
 - `camera-params-<NAME>.yaml` — `depthai_ros_driver::Camera` parameters (sections `camera`, `imu`, `rgb`, `diagnostic_updater`)
 - `ffmpeg-params-<NAME>.yaml` — `ffmpeg_image_transport` parameters (encoding, preset, tune)
-- `dds-config-<NAME>.xml` — FastDDS profile (`xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles"`) or CycloneDDS (`xmlns="https://cdds.io/config"`). Type detected by `check_xml_profile_type` in `utils.sh`.
+- `rmw/<impl>/<NAME>.xml` — FastDDS profile (`xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles"`) or CycloneDDS (`xmlns="https://cdds.io/config"`). Type detected by `check_xml_profile_type` in `utils.sh`.
 
 ### ROS topics published (full RGBD pipeline)
 ```
@@ -183,7 +183,7 @@ ROS_DISTRO=jazzy   ──► ./render_template.py snapcraft_template.yaml.jinja2
                        └─► snapcraft (with SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1)
                               ├── apt-get stage-packages (depthai-ros, image_transport, ffmpeg, cv-bridge,
                               │   ffmpeg-image-transport, rmw-cyclonedds-cpp, libpulse-dev, libblas3, libjpeg-turbo8-dev)
-                              ├── git clone husarion-snap-common@0.5.0 → dump
+                              ├── git clone husarion-snap-common@0.11.0 → dump
                               ├── snap/local/ → dump
                               ├── curl yq → bin
                               ├── execstack -c libamdhip64.so* (part of fix-execstack)
@@ -281,7 +281,7 @@ launcher.sh starts from scratch with the new values
 
 | Integration | Method | Pinned version |
 | --- | --- | --- |
-| `husarion-snap-common` | git clone in `parts.husarion-snap-common.source` | branch/tag `0.5.0` |
+| `husarion-snap-common` | git clone in `parts.husarion-snap-common.source` | branch/tag `0.11.0` |
 | `depthai-ros` | apt (`ros-{distro}-depthai-ros`) from the ROS 2 distro repo | dynamic (`apt-cache policy …\| Candidate`) |
 | `yq` | curl from GitHub releases | `v4.35.1` |
 | ROS 2 base | snapcraft extension `ros2-{distro}-ros-base` | distro = humble \| jazzy |
@@ -374,7 +374,7 @@ launcher.sh starts from scratch with the new values
 | New `driver.X` parameter | `snap/hooks/{configure,install}` + `snap/local/{launcher.sh,depthai.launch.py}` (4 spots) |
 | New camera YAML preset | add `camera-params-<NAME>.yaml` to `snap/local/` |
 | New ffmpeg YAML preset | add `ffmpeg-params-<NAME>.yaml` to `snap/local/` |
-| New DDS transport | PR to `husarion/husarion-snap-common` (`local-ros/dds-config-<NAME>.xml`) + bump pin in Jinja |
+| New DDS transport | PR to `husarion/husarion-snap-common` (`local-ros/rmw/<impl>/<NAME>.xml`) + bump pin in Jinja |
 | New apt dependency | `snapcraft_template.yaml.jinja2` → `parts.husarion-depthai.stage-packages` |
 | New plug (e.g. `gpio`) | `snapcraft_template.yaml.jinja2` → `apps.daemon.plugs` + `apps.husarion-depthai.plugs` + `post_install.sh` (snap connect) |
 | New ROS distro (e.g. `kilted`) | Jinja conditions on `core` per distro + matrix in CI + entry in `justfile` |
