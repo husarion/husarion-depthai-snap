@@ -37,3 +37,12 @@ repos:
       - id: trailing-whitespace
         # Preserve trailing spaces inside *.md (Markdown line breaks).
         exclude: '\.md$'
+
+  # Markdown style: fenced code + single-line paragraphs (.mdformat.toml:
+  # wrap=no). mdformat-gfm is REQUIRED so GFM tables survive (else flattened).
+  - repo: https://github.com/hukkin/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm==1.0.0
