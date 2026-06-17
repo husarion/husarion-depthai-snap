@@ -162,10 +162,13 @@ parts:
   husarion-snap-common:
     plugin: dump
     source: https://github.com/husarion/husarion-snap-common
-    # 0.10.0 adds the files-first husarion-agent launcher + the content-chain
-    # launcher logic + content-*.sh helpers (SPEC-content-chain). depthai gains
-    # the embedded husarion-agent for the first time here.
-    source-tag: "0.11.0"
+    # 0.12.0 adds the snap-agnostic standalone Manage panels (Health/Info) + the
+    # ros.env world-readable perms fix (0.11.0: cyclonedds large-frame buffer +
+    # ros.env regen serialize). 0.10.0 added the files-first husarion-agent
+    # launcher + the content-chain launcher logic + content-*.sh helpers
+    # (SPEC-content-chain). depthai gains the embedded husarion-agent for the
+    # first time here.
+    source-tag: "0.12.0"
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
@@ -185,6 +188,9 @@ parts:
       'husarion-agent/fetch-binary.sh':            usr/share/husarion-snap-common/husarion-agent/fetch-binary.sh
       'husarion-agent/launcher.sh':                usr/bin/husarion_agent_launcher.sh
       'husarion-agent/configure-snap-to-files.sh': usr/bin/configure-snap-to-files.sh
+      # Minimal standalone Manage panels (Health/Info), snap-agnostic — the
+      # launcher points --panels-default at usr/share/husarion-agent/panels.d.
+      'husarion-agent/panels.d/*.yaml':            usr/share/husarion-agent/panels.d/
       # Content-interface chaining helpers (SPEC-content-chain).
       'husarion-agent/content-*.sh':               usr/bin/
     override-build: |
