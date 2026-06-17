@@ -42,6 +42,12 @@ Embeds `husarion-agent` as a chain **follower (leaf)**. Installed next to a
 interface and inherits the owner's network config — nothing to configure. Set
 the network on the **owner**; it cascades here.
 
+**Custom RMW profiles** are added on the **owner** (the rosbot snap, no cockpit
+needed): drop the XML in rosbot's `husarion-agent/config/rmw/<impl>/` and
+`snap set rosbot ros.transport=…` — the file and selection propagate here in
+~0.5 s. Don't add a profile or set `ros.transport` here; the owner reconciles a
+local change away.
+
 ## Apps
 `husarion-depthai.start` · `husarion-depthai.stop` · `husarion-depthai.restart`.
 

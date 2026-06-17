@@ -40,7 +40,7 @@ description: |
 
   **Husarion cockpit integration**
 
-  This snap embeds **husarion-agent** as a chain follower (leaf). In a Husarion cockpit setup the ROS network config — RMW (including Zenoh), `ROS_DOMAIN_ID`, and namespace — is set once from the WebUI **Manage** tab on the chain owner and propagated here automatically. The `ros.*` keys above are the standalone / direct-`snap set` path (Zenoh is driven through the agent, not `ros.transport`).
+  This snap embeds **husarion-agent** as a chain follower (leaf). In a Husarion cockpit setup the ROS network config — RMW (including Zenoh), `ROS_DOMAIN_ID`, and namespace — is set once from the WebUI **Manage** tab on the chain owner and propagated here automatically. The `ros.*` keys above are the standalone / direct-`snap set` path (Zenoh is driven through the agent, not `ros.transport`). Custom RMW profiles are added on the chain owner (the rosbot snap — no cockpit needed) and propagate here automatically; do not add them or set `ros.transport` locally.
 
 grade: stable
 confinement: strict

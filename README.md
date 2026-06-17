@@ -128,6 +128,13 @@ published on rosbot reach this follower's `config/rmw/` and are mirrored to the
 path the driver reads. The content interface is **same-host only**; chaining to
 an agent on another host uses the CLI (`husarion-depthai.peer-join join --primary …`).
 
+To add your **own custom RMW profile** (no cockpit), do it once on **rosbot** —
+drop the XML into its `husarion-agent/config/rmw/<impl>/` source and
+`snap set rosbot ros.transport=…`; the file and the selection propagate here
+automatically. Don't add it or set `ros.transport` here directly — the owner
+reconciles a follower's local change away. See the rosbot README §"Adding a
+custom RMW profile and propagating it across the chain".
+
 ### Inspecting
 
 This follower's cert bundle lives under `$SNAP_COMMON/peer-certs/`. The chain is
