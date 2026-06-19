@@ -40,7 +40,12 @@ The depthai_ros_driver pipeline YAMLs are snap-shipped to **`/var/snap/husarion-
 Encoder paths for the RGB feed (matters for streaming fps / CPU):
 
 - `default` → publishes RAW bgr8 1280x720 on `.../oak/rgb/image_raw` (~2.7 MB/frame); any H.264 is a **host** re-encode (libx264). Heavy — a downstream re-encoder (e.g. the cockpit camera node) is CPU-bound here (~11 fps).
-- `streaming-h264` → `i_low_bandwidth: true` → the OAK chip's **hardware** VideoEncoder emits H.264 on `.../oak/rgb/image_raw/compressed` (a `ffmpeg_image_transport_msgs/FFMPEGPacket`); the raw topic is dropped and there is no host encode. Pair with `driver.rectify-rgb=false` + `driver.enable-pointcloud=false`.
+- `streaming-h264` → `i_low_bandwidth: true` → the OAK chip's **hardware** VideoEncoder emits H.264 on `.../oak/rgb/image_raw/compressed` (a `ffmpeg_image_transport_msgs/FFMPEGPacket`); the raw topic is dropped and there is no host encode. Pair with `driver.rectify-rgb=false` + `driver.enable-pointcloud=false`. **Verified on x86 (2026-06-19):** daemon CPU steady at ~4.7% (vs ~127% for host libx264) — the chip path is genuinely engaged.
+
+> **Two gotchas when verifying chip vs host encode** (both bit a reviewer in 2026-06):
+>
+> - The `FFMPEGPacket.encoding` token reads **`libx264` even on the chip path** — it is dead metadata (`i_low_bandwidth_ffmpeg_encoder` is declared but never read back; see CLAUDE.md "Pitfalls"). Do **not** read it as "host re-encode". Use **daemon CPU** as the signal: ~few % = chip, ~100%+ = host libx264.
+> - `ros2 topic list` may still show `.../oak/rgb/image_raw` even though the chip path drops it — a *subscriber* (e.g. the cockpit camera node holding its previous source) keeps the topic name alive. Check `ros2 topic info` **Publisher count** (0 under `streaming-h264`), not mere presence.
 
 ## Chaining (how it gets its network config)
 
