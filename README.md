@@ -10,12 +10,12 @@ Snap for OAK-x cameras customized for Husarion robots.
 
 ## Apps
 
-| app | description |
-| -- | -- |
-| `husarion-depthai.start` | Enable + start the `husarion-depthai.daemon` service |
-| `husarion-depthai.stop` | Disable + stop the daemon |
-| `husarion-depthai.restart` | Restart the daemon |
-| `husarion-depthai` | Run in the foreground (stop the daemon first) |
+| app                        | description                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `husarion-depthai.start`   | Enable + start the `husarion-depthai.daemon` service |
+| `husarion-depthai.stop`    | Disable + stop the daemon                            |
+| `husarion-depthai.restart` | Restart the daemon                                   |
+| `husarion-depthai`         | Run in the foreground (stop the daemon first)        |
 
 ## Configuration
 
@@ -42,13 +42,14 @@ Dump current settings: `snap get -d husarion-depthai`
 
 Bundled preset YAMLs live in `/var/snap/husarion-depthai/current/`:
 
-| preset | hardware | pipeline | notes |
-| -- | -- | -- | -- |
-| `default` | any OAK-x | RGB | 1280×720 @ 30 fps, raw RGB over USB |
-| `oak-1-lite` | OAK-1-LITE | RGB | single-sensor IMX214 |
-| `oak-d-pro` | OAK-D-PRO | RGBD + IMU + IR | subpixel + lr_check + align_depth |
-| `oak-d-pro-poe` | OAK-D-PRO-POE | RGBD + IMU + IR | MJPEG quality 50, default IP `10.15.20.6` |
-| `oak-d-pro-slam` | OAK-D-PRO | RGBD + IMU + IR | manual exposure for VIO/SLAM feature trackers |
+| preset           | hardware      | pipeline         | notes                                                                                                                 |
+| ---------------- | ------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `default`        | any OAK-x     | RGB              | 1280×720 @ 30 fps, raw RGB over USB                                                                                   |
+| `oak-1-lite`     | OAK-1-LITE    | RGB              | single-sensor IMX214                                                                                                  |
+| `oak-d-pro`      | OAK-D-PRO     | RGBD + IMU + IR  | subpixel + lr_check + align_depth                                                                                     |
+| `oak-d-pro-poe`  | OAK-D-PRO-POE | RGBD + IMU + IR  | MJPEG quality 50, default IP `10.15.20.6`                                                                             |
+| `oak-d-pro-slam` | OAK-D-PRO     | RGBD + IMU + IR  | manual exposure for VIO/SLAM feature trackers                                                                         |
+| `streaming-h264` | any OAK-x     | RGB (chip H.264) | OAK hardware H.264 on `…/rgb/image_raw/compressed` (FFMPEGPacket); no raw/rect/PCL — rectify + point-cloud forced off |
 
 Add your own preset:
 

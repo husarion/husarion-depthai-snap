@@ -13,8 +13,19 @@ OPTIONS=(
 
 LAUNCH_OPTIONS=()
 
+CAMERA_PARAMS="$(snapctl get driver.camera-params)"
+
+# The chip-encoded H.264 preset (streaming-h264, i_low_bandwidth=true) drops the
+# raw RGB topic, so the rectify + point-cloud nodes would have no input. Force
+# both off regardless of their snap config so selecting this preset from the
+# cockpit Manage tab can never produce a half-broken pipeline.
 for OPTION in "${OPTIONS[@]}"; do
   VALUE="$(snapctl get "driver.${OPTION}")"
+  if [ "${CAMERA_PARAMS}" = "streaming-h264" ]; then
+    case "${OPTION}" in
+      rectify-rgb | enable-pointcloud) VALUE="false" ;;
+    esac
+  fi
   if [ -n "${VALUE}" ]; then
     OPTION_WITH_UNDERSCORE="${OPTION//-/_}"
     LAUNCH_OPTIONS+=("${OPTION_WITH_UNDERSCORE}:=${VALUE}")
@@ -27,7 +38,6 @@ if [ -n "${ROS_NAMESPACE}" ]; then
     LAUNCH_OPTIONS+=("namespace:=${ROS_NAMESPACE}")
 fi
 
-CAMERA_PARAMS="$(snapctl get driver.camera-params)"
 LAUNCH_OPTIONS+=("params_file:=${SNAP_DATA}/camera-params-${CAMERA_PARAMS}.yaml")
 
 FFMPEG_PARAMS="$(snapctl get driver.ffmpeg-params)"
