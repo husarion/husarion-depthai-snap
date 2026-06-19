@@ -30,6 +30,18 @@ sudo husarion-depthai.start
 - RMW profile files: `/var/snap/husarion-depthai/common/rmw/`, and the chain config under `/var/snap/husarion-depthai/common/husarion-agent/config/`.
 - `ros.transport` selects FastDDS / CycloneDDS profiles only. **Zenoh reaches this snap through the agent chain** from the owner, not via `ros.transport`.
 
+## Camera pipeline config locations (camera-params)
+
+The depthai_ros_driver pipeline YAMLs are snap-shipped to **`/var/snap/husarion-depthai/current/`** (read-only, reset on refresh; the durable source is this repo at `snap/local/`). `driver.camera-params=<preset>` selects one:
+
+- `camera-params-<preset>.yaml` — RGB/stereo pipeline: resolution, fps, on-chip encoder, IMU/IR/NN, low-bandwidth. Presets shipped: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, `streaming-h264`.
+- `ffmpeg-params-default.yaml` — HOST-side `image_transport` encoder for the `.../image_raw/ffmpeg` topic (libx264, software, on the host CPU).
+
+Encoder paths for the RGB feed (matters for streaming fps / CPU):
+
+- `default` → publishes RAW bgr8 1280x720 on `.../oak/rgb/image_raw` (~2.7 MB/frame); any H.264 is a **host** re-encode (libx264). Heavy — a downstream re-encoder (e.g. the cockpit camera node) is CPU-bound here (~11 fps).
+- `streaming-h264` → `i_low_bandwidth: true` → the OAK chip's **hardware** VideoEncoder emits H.264 on `.../oak/rgb/image_raw/compressed` (a `ffmpeg_image_transport_msgs/FFMPEGPacket`); the raw topic is dropped and there is no host encode. Pair with `driver.rectify-rgb=false` + `driver.enable-pointcloud=false`.
+
 ## Chaining (how it gets its network config)
 
 Embeds `husarion-agent` as a chain **follower (leaf)**. Installed next to a `rosbot` snap (or a cockpit host) it auto-joins over the `agent-chain` content interface and inherits the owner's network config — nothing to configure. Set the network on the **owner**; it cascades here.
