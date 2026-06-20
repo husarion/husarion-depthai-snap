@@ -30,15 +30,18 @@
             # intra-refresh stream emits none, so the video stays black. gop_size
             # gives one IDR per second (a late subscriber waits ≤1 s).
             gop_size: 30
-            # profile:baseline + tune:zerolatency = no B-frames → the WebCodecs
-            # decoder is reliably 1-in-1-out (matches the on-chip streaming-h264
-            # presets). preset:ultrafast keeps host CPU low.
-            encoder_av_options: "preset:ultrafast,tune:zerolatency,profile:baseline"
+            # tune:zerolatency already makes libx264 emit Constrained Baseline
+            # (no B-frames) → the WebCodecs decoder is reliably 1-in-1-out. Do NOT
+            # add an explicit `profile:baseline` av-option: the ffmpeg_image_transport
+            # plugin fails to open the encoder when it's set. preset:ultrafast keeps
+            # host CPU low.
+            encoder_av_options: "preset:ultrafast,tune:zerolatency"
     image_rect:
       ffmpeg:
         encoder: libx264
         bit_rate: 2000000
         gop_size: 30
-        # IDR keyframes (no intra-refresh) + baseline — see the rgb block above:
-        # required for the cockpit's in-browser WebCodecs decode path.
-        encoder_av_options: "preset:ultrafast,tune:zerolatency,profile:baseline"
+        # IDR keyframes (no intra-refresh) — see the rgb block above: required for
+        # the cockpit's in-browser WebCodecs decode path. zerolatency already gives
+        # Constrained Baseline; no explicit profile (it breaks the encoder open).
+        encoder_av_options: "preset:ultrafast,tune:zerolatency"
