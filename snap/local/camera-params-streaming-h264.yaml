@@ -1,7 +1,9 @@
 ---
-# Chip-encoded H.264 stream — uses the OAK chip's hardware VideoEncoder instead
-# of host-side libx264. Trades off ~50% daemon CPU savings against the rectify
-# and pointcloud pipelines (see CLAUDE.md "Pitfalls" section).
+# Chip-encoded H.264 stream — 720p (1280x720) @ 30 fps. The balanced default of
+# the streaming-h264 family; uses the OAK chip's hardware VideoEncoder instead of
+# host-side libx264. Trades off ~50% daemon CPU savings against the rectify and
+# pointcloud pipelines (see CLAUDE.md "Pitfalls" section). For other res/fps see
+# the streaming-h264-{360p30,720p60,1080p60,4k30} variants.
 #
 # With i_low_bandwidth=true the depthai_ros_driver:
 #   - skips publishing raw /oak/rgb/image_raw  (sensor_msgs/Image bgr8 disappears)
@@ -42,4 +44,9 @@
       # which breaks overlay time-alignment.)
       i_max_q_size: 1
       i_publish_compressed: true          # required — false triggers host decode bug #687
-      i_resolution: '1080P'
+      i_resolution: '1080P'               # sensor mode; ISP-downscaled below
+      # Output resolution: 1080P sensor mode x 2/3 ISP scale = 1280x720. This is
+      # the driver's default ISP ratio, pinned explicitly here so the output res
+      # is unambiguous (width 1280 is a multiple of 32, required by the encoder).
+      i_isp_num: 2
+      i_isp_den: 3
