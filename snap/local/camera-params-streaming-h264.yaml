@@ -22,9 +22,16 @@
       i_enable_lazy_publisher: false
       i_fps: 30.0
       i_low_bandwidth: true
-      i_low_bandwidth_profile: 2          # H264_MAIN
-      i_low_bandwidth_bitrate: 4000000    # 4 Mbps, same target as libx264 preset
-      i_low_bandwidth_frame_freq: 60      # keyframe every 2 s @ 30 fps
+      # H264_BASELINE (profile 0), NOT Main: baseline has no B-frames, so the
+      # browser's WebCodecs decoder is reliably 1-in-1-out with no reorder
+      # latency — Main streams can need several frames buffered after a keyframe
+      # before the first decode (w3c/webcodecs#732), adding teleop lag. The
+      # small compression hit is the right trade for a control feed.
+      i_low_bandwidth_profile: 0          # H264_BASELINE (low-latency teleop)
+      i_low_bandwidth_bitrate: 4000000    # 4 Mbps @ 720p30
+      i_low_bandwidth_frame_freq: 30      # keyframe every 1 s @ 30 fps — bounds
+                                          # reconnect latency (a late subscriber
+                                          # waits up to one keyframe to decode)
       i_max_q_size: 4
       i_publish_compressed: true          # required — false triggers host decode bug #687
       i_resolution: '1080P'
