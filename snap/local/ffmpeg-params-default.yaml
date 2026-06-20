@@ -23,15 +23,22 @@
             # more than bandwidth. libx264 requires an explicit bitrate; the
             # default sentinel -1 makes `avcodec_open2` fail.
             bit_rate: 2000000
-            # 1s refresh cycle @ 30fps. With intra-refresh below, I-frame data
-            # is spread across the cycle (no keyframe spikes — flat bitrate
-            # profile, easier on jitter buffers). Trade-off: late subscribers
-            # (Foxglove, rviz) must wait a full cycle before they can decode.
+            # IDR keyframe every 30 frames (~1 s @ 30 fps). Do NOT use
+            # intra-refresh here: the cockpit decodes this stream in the browser
+            # via WebCodecs (husarion_camera passthrough → CompressedVideo), and
+            # WebCodecs CANNOT start without a real IDR keyframe — an
+            # intra-refresh stream emits none, so the video stays black. gop_size
+            # gives one IDR per second (a late subscriber waits ≤1 s).
             gop_size: 30
-            encoder_av_options: "preset:ultrafast,tune:zerolatency,intra-refresh:1"
+            # profile:baseline + tune:zerolatency = no B-frames → the WebCodecs
+            # decoder is reliably 1-in-1-out (matches the on-chip streaming-h264
+            # presets). preset:ultrafast keeps host CPU low.
+            encoder_av_options: "preset:ultrafast,tune:zerolatency,profile:baseline"
     image_rect:
       ffmpeg:
         encoder: libx264
         bit_rate: 2000000
         gop_size: 30
-        encoder_av_options: "preset:ultrafast,tune:zerolatency,intra-refresh:1"
+        # IDR keyframes (no intra-refresh) + baseline — see the rgb block above:
+        # required for the cockpit's in-browser WebCodecs decode path.
+        encoder_av_options: "preset:ultrafast,tune:zerolatency,profile:baseline"
