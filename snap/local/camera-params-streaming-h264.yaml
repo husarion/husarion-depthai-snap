@@ -28,7 +28,10 @@
       # before the first decode (w3c/webcodecs#732), adding teleop lag. The
       # small compression hit is the right trade for a control feed.
       i_low_bandwidth_profile: 0          # H264_BASELINE (low-latency teleop)
-      i_low_bandwidth_bitrate: 4000000    # 4 Mbps @ 720p30
+      i_low_bandwidth_bitrate: 2500000    # 2.5 Mbps @ 720p30 — plenty for a
+                                          # teleop view; lower bitrate = less
+                                          # chance of saturating a weak WiFi
+                                          # link (which causes buffering lag)
       i_low_bandwidth_frame_freq: 30      # keyframe every 1 s @ 30 fps — bounds
                                           # reconnect latency (a late subscriber
                                           # waits up to one keyframe to decode)
