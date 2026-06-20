@@ -35,6 +35,11 @@
       i_low_bandwidth_frame_freq: 30      # keyframe every 1 s @ 30 fps — bounds
                                           # reconnect latency (a late subscriber
                                           # waits up to one keyframe to decode)
-      i_max_q_size: 4
+      # Latency: q_size 1 keeps only the freshest encoded frame on the host —
+      # a depth-4 queue adds up to ~130 ms of stale-frame buffering (Luxonis
+      # low-latency guidance). (i_get_base_device_timestamp is left false: true
+      # stamps frames with the device's monotonic clock, not host/ROS time,
+      # which breaks overlay time-alignment.)
+      i_max_q_size: 1
       i_publish_compressed: true          # required — false triggers host decode bug #687
       i_resolution: '1080P'
