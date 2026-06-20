@@ -1,0 +1,34 @@
+---
+# Chip-encoded H.264 stream — 4K (3840x2160) @ 30 fps (high-detail variant of
+# streaming-h264). Uses the OAK chip's hardware VideoEncoder; the i_low_bandwidth
+# path drops raw /oak/rgb/image_raw and publishes the H.264 bitstream on
+# /oak/rgb/image_raw/compressed (ffmpeg_image_transport_msgs/FFMPEGPacket).
+#
+# OAK-D-PRO (IMX378) supports 4K @ 30 fps (not 60). 4K30 sits exactly at the
+# on-chip H.264 encoder ceiling (248 Mpix/s = 3840x2160x30), so this must be the
+# ONLY encoded stream — don't combine with another low_bandwidth sensor. Pair with
+# rectify-rgb=false + enable-pointcloud=false (forced off for streaming-h264*).
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_nn_type: none
+      i_pipeline_type: RGB
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false
+      i_fps: 30.0
+      i_low_bandwidth: true
+      i_low_bandwidth_profile: 0          # H264_BASELINE (low-latency teleop; no B-frames)
+      i_low_bandwidth_bitrate: 10000000   # 10 Mbps @ true 4K30 — bandwidth/quality
+                                          # compromise for WiFi (true 4K wants more;
+                                          # raise on a wired/strong link).
+      i_low_bandwidth_frame_freq: 30      # encoder frame cadence = fps → ~1 s GOP
+      i_max_q_size: 1
+      i_publish_compressed: true          # required — false triggers host decode bug #687
+      i_resolution: '4K'
+      # The driver's default ISP scale is 2/3 (would give 2560x1440); pin 1/1 for
+      # TRUE 4K output (3840x2160; width is a multiple of 32, required by the encoder).
+      i_isp_num: 1
+      i_isp_den: 1
