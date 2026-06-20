@@ -1,0 +1,31 @@
+---
+# Chip-encoded H.264 stream — 360p (640x360) @ 60 fps. Lowest resolution at the
+# smoothest rate: tiny payload + 60 fps motion for very constrained links where
+# you still want fluid teleop. Uses the OAK chip's hardware VideoEncoder; the
+# i_low_bandwidth path drops raw /oak/rgb/image_raw and publishes H.264 on
+# /oak/rgb/image_raw/compressed.
+#
+# IMX378 has no native 360P mode, so this runs 1080P @ 60 fps and ISP-downscales
+# 1/3 → 640x360 (width 640 is a multiple of 32, required by the encoder). Pair with
+# rectify-rgb=false + enable-pointcloud=false (forced off for streaming-h264*).
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_nn_type: none
+      i_pipeline_type: RGB
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false
+      i_fps: 60.0
+      i_low_bandwidth: true
+      i_low_bandwidth_profile: 0          # H264_BASELINE (low-latency teleop; no B-frames)
+      i_low_bandwidth_bitrate: 1500000    # 1.5 Mbps @ 360p60 — fluid motion at a
+                                          # tiny footprint; survives a weak link.
+      i_low_bandwidth_frame_freq: 60      # encoder frame cadence = fps → ~1 s GOP
+      i_max_q_size: 1
+      i_publish_compressed: true          # required — false triggers host decode bug #687
+      i_resolution: '1080P'               # sensor mode; ISP-downscaled below
+      i_isp_num: 1                        # ISP scale 1/3: 1920x1080 → 640x360
+      i_isp_den: 3
