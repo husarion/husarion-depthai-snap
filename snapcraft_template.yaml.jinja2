@@ -28,7 +28,7 @@ description: |
 
   * name: `oak` - ROS 2 node name; also the prefix in published topic paths (`/<ns>/<name>/rgb/...`).
   * camera-model: `OAK-D-PRO` - one of `OAK-D`, `OAK-D-LITE`, `OAK-1`, `OAK-1-LITE`, `OAK-D-PRO`, `OAK-D-PRO-W`. Used for snap-side validation; the depthai driver autodetects the actual hardware.
-  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, and the OAK chip hardware-H.264 streaming family: `streaming-h264` (720p30), `streaming-h264-360p30` + `streaming-h264-360p60` (ultra-low bandwidth), `streaming-h264-720p60`, `streaming-h264-1080p60`, `streaming-h264-4k30` (resolution/fps verified on an IMX378 OAK; the on-chip encoder caps at 4K30 = 248 Mpix/s; sub-1080p resolutions use ISP downscale). Bundled presets are refreshed on every `snap refresh`; user-added `camera-params-*.yaml` in this directory are preserved and appear automatically in the cockpit Manage dropdown.
+  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, and the OAK chip hardware-H.264 streaming family: `streaming-h264` (720p30), `streaming-h264-360p30` + `streaming-h264-360p60` (ultra-low bandwidth), `streaming-h264-720p60`, `streaming-h264-1080p60`, `streaming-h264-4k30` (resolution/fps verified on an IMX378 OAK; the on-chip encoder caps at 4K30 = 248 Mpix/s; sub-1080p resolutions use ISP downscale); and the dual-output family `dual-rgb` (720p), `dual-rgb-1080p`, `dual-rgb-360p`, `dual-rgb-1080p-raw-720p-enc`, `dual-rgb-360p-raw-720p-enc` (raw + on-chip H.264 from one camera at once, via the bundled husarion_depthai_pipeline plugin) plus `dual-rgbd` (draft, needs a stereo OAK). Bundled presets are refreshed on every `snap refresh`; user-added `camera-params-*.yaml` in this directory are preserved and appear automatically in the cockpit Manage dropdown.
   * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-depthai/current/ffmpeg-params-<VALUE>.yaml`
   * startup-delay: `30` - Seconds to sleep on first launch after a fresh boot (uptime < startup-delay+60s). Set to `0` or `''` to disable. Workaround for depthai-ros USB cold-start race; tune higher (60+) for slow-booting hosts, lower (10-15) for fast x86.
   * enable-pointcloud: `false` - Load `depth_image_proc::PointCloudXyzrgbNode` and force RGB/stereo timestamp sync. Requires RGBD pipeline (e.g. `camera-params=oak-d-pro`).
@@ -147,6 +147,27 @@ parts:
       version="$(apt-cache policy ros-{{ ros_distro }}-depthai-ros-driver | grep Candidate | awk '{print $2}')"
       craftctl set version="$version"
       craftctl set grade="stable"
+
+  # Custom depthai_ros_driver pipeline plugin (pluginlib): RGB raw + on-chip-H.264
+  # dual output (plus a draft RGB+depth class). Built against the staged
+  # ros-{{ ros_distro }}-depthai-ros and primed into /opt/ros/{{ ros_distro }} so the
+  # driver's class loader autoloads it when a camera-params preset sets
+  # camera.i_pipeline_type=husarion_depthai::pipeline_gen::RGBDual (see
+  # camera-params-dual-rgb*.yaml). Verified live via `snap try`; this part wires it
+  # into a clean pack — validate on the first release pack.
+  husarion-depthai-pipeline:
+    plugin: colcon
+    source: ros/
+    source-type: local
+    after: [husarion-depthai]
+    colcon-packages: [husarion_depthai_pipeline]
+    build-packages:
+      - ros-{{ ros_distro }}-depthai-ros-driver
+      - ros-{{ ros_distro }}-depthai
+      - ros-{{ ros_distro }}-depthai-bridge
+      - ros-{{ ros_distro }}-ffmpeg-image-transport-msgs
+      - ros-{{ ros_distro }}-image-transport
+      - ros-{{ ros_distro }}-camera-info-manager
 
   local-files:
     plugin: dump

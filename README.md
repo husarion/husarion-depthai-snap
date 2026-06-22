@@ -50,6 +50,14 @@ Bundled preset YAMLs live in `/var/snap/husarion-depthai/current/`:
 | `oak-d-pro-poe`  | OAK-D-PRO-POE | RGBD + IMU + IR  | MJPEG quality 50, default IP `10.15.20.6`                                                                             |
 | `oak-d-pro-slam` | OAK-D-PRO     | RGBD + IMU + IR  | manual exposure for VIO/SLAM feature trackers                                                                         |
 | `streaming-h264` | any OAK-x     | RGB (chip H.264) | OAK hardware H.264 on `…/rgb/image_raw/compressed` (FFMPEGPacket); no raw/rect/PCL — rectify + point-cloud forced off |
+| `dual-rgb`       | any OAK-x     | RGB (dual)       | raw `…/rgb/image_raw` (autonomy) **and** on-chip H.264 `…/rgb/image_raw/compressed` (telepresence) at once, 720p @ 30 — via the `husarion_depthai_pipeline` plugin |
+| `dual-rgb-1080p` | any OAK-x     | RGB (dual)       | as `dual-rgb` at 1080p, 8.5 Mbps encoded                                                                              |
+| `dual-rgb-360p`  | any OAK-x     | RGB (dual)       | as `dual-rgb` at 360p, 1 Mbps encoded — survives weak links                                                          |
+| `dual-rgb-1080p-raw-720p-enc` | any OAK-x | RGB (dual, asymmetric) | full-res 1080p raw + downscaled 720p H.264 (on-chip ImageManip)                                       |
+| `dual-rgb-360p-raw-720p-enc`  | any OAK-x | RGB (dual, asymmetric) | lightweight 360p raw + 720p H.264 view                                                                |
+| `dual-rgbd`      | OAK-D-class   | RGB + depth (dual) | **draft, needs a stereo OAK:** adds depth 16UC1 raw + disparity grayscale-H.264 view alongside the RGB dual output  |
+
+The `dual-*` presets use the bundled `husarion_depthai_pipeline` pluginlib plugin (selected via `camera.i_pipeline_type`); they publish raw + on-chip H.264 from one camera simultaneously with no host encode. The cockpit telepresence feed auto-follows the on-chip `…/compressed` (badge: `sensor`) while autonomy nodes read the raw topic.
 
 Add your own preset:
 
