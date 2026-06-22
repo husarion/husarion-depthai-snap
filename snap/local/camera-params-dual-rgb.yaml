@@ -1,18 +1,38 @@
 ---
-# Dual-output RGB preset — publishes BOTH representations of the RGB stream from
-# one OAK at once, via the husarion_depthai_pipeline plugin (no host encode, no
-# new snap interface; the OAK's hardware VideoEncoder does the H.264):
+# ============================================================================
+# CANONICAL dual-output preset — the dual-rgb* family's reference file. The
+# variants (-1080p, -360p, -*-raw-*-enc) point here for the how/why.
+# ============================================================================
+# Publishes BOTH representations of the RGB stream from one OAK at once, via the
+# CUSTOM husarion_depthai_pipeline plugin (an external pluginlib package built
+# into this snap — NOT stock depthai, NOT a fork; durable source: the snap repo
+# `ros/husarion_depthai_pipeline/`). The OAK's hardware VideoEncoder does the
+# H.264; no host encode, no /dev/dri, no new snap interface.
 #
-#   /oak/rgb/image_raw             raw sensor_msgs/Image   → autonomy / ROS 2 nodes
-#   /oak/rgb/image_raw/compressed  on-chip H.264 FFMPEGPacket → telepresence (webui)
+#   /oak/rgb/image_raw             raw sensor_msgs/Image     → autonomy / ROS 2 nodes
+#   /oak/rgb/image_raw/compressed  on-chip H.264 FFMPEGPacket → telepresence (cockpit)
 #
-# Both taps come off one ColorCamera.video (NV12) output simultaneously. Proven on
-# OAK-1 over USB3 SUPER at 30 fps with the depthai container at ~4% CPU (raw is a
-# host XLinkOut tap; the encode is entirely on-chip). Contrast i_low_bandwidth
-# (encoded only, no raw) and the host-ffmpeg path (raw only, ~57% CPU).
+# Under the hood: the plugin taps ONE ColorCamera.video (NV12) output to both a
+# raw XLinkOut (→ image_raw) and the on-chip VideoEncoder (→ image_raw/compressed).
+# One dai output fanned to two consumers — that's the trick the stock driver can't
+# do (i_low_bandwidth is either/or: true = encoded only / false = raw + a ~57%-CPU
+# host libx264 .../ffmpeg).
 #
-# Generic-over-streams plugin: when a stereo OAK is connected a sibling depth
-# preset will add depth 16UC1 raw + disparity grayscale-H.264 view the same way.
+# VERIFIED LIVE on an OAK-1 (USB3 SUPER, 2026-06-22): raw 1280x720 + on-chip H.264
+# both at 30 fps, depthai daemon ~12.7% CPU. That ~12.7% is the host NV12->bgr8
+# conversion for the raw image_raw topic (BGR is what ROS nodes want); the H.264
+# encode is on-chip and ~free. (NB: an earlier standalone probe showed ~4% because
+# it measured only the raw byte tap, NOT the NV12->bgr8 conversion + ROS publish.)
+# Far below the raw-then-host-reencode path (~98% of one core — ROS-transport-bound
+# on the 83 MB/s raw firehose, NOT the codec).
+#
+# Cockpit (verified, no cockpit change): the camera node auto-follows the OAK base
+# topic, prefers .../compressed (passthrough, ~0 host CPU, badge sensor-h264) for
+# telepresence, and autonomy reads the raw. Decodes at full fps in the webui.
+#
+# Generic-over-streams plugin: dual-rgbd (class RGBDDual) adds a DRAFT depth path
+# (depth 16UC1 raw + disparity grayscale-H.264 view) the same way — UNVERIFIED,
+# needs a stereo OAK.
 /**:
   ros__parameters:
     # Suppress the raw stream's image_transport republisher plugins so the on-chip

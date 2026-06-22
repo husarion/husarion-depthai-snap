@@ -3,7 +3,8 @@
 # link: raw 1920x1080 (image_raw) + on-chip H.264 1280x720 (image_raw/compressed),
 # both @30. The encoder taps an on-chip ImageManip that resizes the 1080p video to
 # 720p, so autonomy keeps full detail while telepresence rides a lighter stream.
-# Via husarion_depthai_pipeline (RGBDual, independent raw/enc sizing).
+# Custom husarion_depthai_pipeline plugin (RGBDual, independent raw/enc sizing via an
+# on-chip ImageManip) — see camera-params-dual-rgb.yaml for the mechanism + verified perf.
 /**:
   ros__parameters:
     oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']

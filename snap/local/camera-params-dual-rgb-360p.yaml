@@ -1,7 +1,8 @@
 ---
 # Dual-output RGB @ 360p — raw 640x360 (lightweight autonomy) + on-chip H.264
 # 640x360 @30, ~1 Mbps (telepresence over weak/congested links). Both legs stay
-# alive on a poor WiFi where 720p/1080p would buffer. Via husarion_depthai_pipeline.
+# alive on a poor WiFi where 720p/1080p would buffer. Custom husarion_depthai_pipeline
+# plugin (dual output) — see camera-params-dual-rgb.yaml for the mechanism + verified perf.
 /**:
   ros__parameters:
     oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']

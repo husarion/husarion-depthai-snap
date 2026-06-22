@@ -34,13 +34,26 @@ sudo husarion-depthai.start
 
 The depthai_ros_driver pipeline YAMLs are snap-shipped to **`/var/snap/husarion-depthai/current/`** (read-only, reset on refresh; the durable source is this repo at `snap/local/`). `driver.camera-params=<preset>` selects one:
 
-- `camera-params-<preset>.yaml` — RGB/stereo pipeline: resolution, fps, on-chip encoder, IMU/IR/NN, low-bandwidth. Presets shipped: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, `streaming-h264`.
+- `camera-params-<preset>.yaml` — RGB/stereo pipeline: resolution, fps, on-chip encoder, IMU/IR/NN, low-bandwidth. Presets shipped: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, the `streaming-h264*` family, and the **`dual-rgb*` family + `dual-rgbd`** (custom-plugin dual output — see below).
 - `ffmpeg-params-default.yaml` — HOST-side `image_transport` encoder for the `.../image_raw/ffmpeg` topic (libx264, software, on the host CPU).
 
-Encoder paths for the RGB feed (matters for streaming fps / CPU):
+Encoder paths for the RGB feed — **three archetypes** (matters for streaming fps / CPU):
 
-- `default` → publishes RAW bgr8 1280x720 on `.../oak/rgb/image_raw` (~2.7 MB/frame); any H.264 is a **host** re-encode (libx264). Heavy — a downstream re-encoder (e.g. the cockpit camera node) is CPU-bound here (~11 fps).
-- `streaming-h264` → `i_low_bandwidth: true` → the OAK chip's **hardware** VideoEncoder emits H.264 on `.../oak/rgb/image_raw/compressed` (a `ffmpeg_image_transport_msgs/FFMPEGPacket`); the raw topic is dropped and there is no host encode. Pair with `driver.rectify-rgb=false` + `driver.enable-pointcloud=false`. **Verified on x86 (2026-06-19):** daemon CPU steady at ~4.7% (vs ~127% for host libx264) — the chip path is genuinely engaged.
+- **raw + host re-encode** (`default`, `oak-1-lite`, `oak-d-pro*`): `i_low_bandwidth: false` → publishes RAW bgr8 on `.../oak/rgb/image_raw` (~2.7 MB/frame @720p). H.264 only exists if something re-encodes on the **host** (libx264 → the `.../ffmpeg` topic). Heavy — a downstream re-encoder (e.g. the cockpit camera node) is **ROS-transport-bound** on the ~83 MB/s raw firehose (DDS fragment reassembly saturates a core → ~3–11 fps). The codec is NOT the bottleneck; the raw transport is.
+- **chip-encoded only** (`streaming-h264*`): `i_low_bandwidth: true` → the OAK chip's **hardware** VideoEncoder emits H.264 on `.../oak/rgb/image_raw/compressed` (a `ffmpeg_image_transport_msgs/FFMPEGPacket`); the **raw topic is dropped** and there is no host encode. Pair with `driver.rectify-rgb=false` + `driver.enable-pointcloud=false`. **Verified on x86 (2026-06-19):** daemon CPU steady at ~4.7% (vs ~127% for host libx264).
+- **dual output — raw AND chip H.264 at once** (`dual-rgb*`): the stock driver can't do this (low_bandwidth is either/or). Custom plugin — see the dedicated section below.
+
+### Dual-output presets + the custom pipeline plugin (`dual-rgb*`)
+
+`dual-rgb*` presets publish **raw `.../oak/rgb/image_raw` AND on-chip H.264 `.../oak/rgb/image_raw/compressed` simultaneously** from one camera — autonomy (raw) + telepresence (chip H.264) at the same time.
+
+- **CUSTOM pluginlib plugin, not stock depthai, NOT a fork:** `husarion_depthai_pipeline` (class `husarion_depthai::pipeline_gen::RGBDual`), an external ament package built into this snap (durable source: the snap repo `ros/husarion_depthai_pipeline/`), registered via pluginlib so the stock `depthai_ros_driver` **autoloads it on demand** when a preset sets `camera.i_pipeline_type: 'husarion_depthai::pipeline_gen::RGBDual'`. Presets without that key never load it. **If the snap is rebuilt/refreshed WITHOUT the plugin part (`husarion-depthai-pipeline` in snapcraft), these presets fail to load.**
+- **Under the hood:** taps one `ColorCamera.video` NV12 output to both a raw XLinkOut (→ `image_raw`) and the OAK hardware VideoEncoder (→ `image_raw/compressed`). One dai output fanned to two consumers. No host encode, no `/dev/dri`, no new snap interface.
+- **Verified live on an OAK-1 (USB3 SUPER, 2026-06-22):** raw 1280×720 + on-chip H.264 both at **30 fps**, daemon **~12.7% CPU** — and that 12.7% is the host **NV12→bgr8** conversion for the raw topic (the encode is on-chip ≈free); contrast the raw-then-host-reencode path at ~98% of a core (transport-bound, above).
+- **Unlike `streaming-h264*`, the FFMPEGPacket `encoding` token is the truthful `h264`** (the plugin sets it), not the stale `libx264` the stock low-bandwidth path reports. Provenance is decided by the `/compressed` suffix regardless, so both badge `sensor`.
+- **Presets:** `dual-rgb` (720p), `dual-rgb-1080p`, `dual-rgb-360p`, and asymmetric `dual-rgb-1080p-raw-720p-enc` / `dual-rgb-360p-raw-720p-enc` (raw and encoder sized **independently** via an on-chip `ImageManip` resize — `rgb.i_raw_*` / `rgb.i_enc_*`). `dual-rgbd` (class `RGBDDual` + `DepthDual` node) is a **DRAFT depth path — UNVERIFIED, needs a stereo OAK** (this unit is an OAK-1, RGB-only).
+- **Each dual preset suppresses the raw stream's image_transport republishers** (`oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']`). Without it the raw publisher's lazy CompressedImage republisher claims the **same** `.../image_raw/compressed` name as the on-chip FFMPEGPacket → two types on one topic, and `ros2 topic hz` / consumers subscribe to the wrong (empty) one. With it, `/compressed` carries only the on-chip H.264.
+- **Cockpit consumption (verified, zero cockpit change):** the camera node auto-follows the OAK base topic and prefers `.../compressed` (passthrough, ~0 host CPU, badge `sensor-h264`) while autonomy reads the raw — exactly like `streaming-h264`. All five dual-rgb presets decode in the cockpit at full fps with the `sensor` badge.
 
 > **Two gotchas when verifying chip vs host encode** (both bit a reviewer in 2026-06):
 >

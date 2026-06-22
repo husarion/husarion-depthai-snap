@@ -3,7 +3,8 @@
 # (image_raw) + on-chip H.264 1280x720 (image_raw/compressed), both @30. Native
 # video is 720p (the encoder taps it directly); the raw tap is ImageManip-resized
 # down to 360p — for local control loops that want a small raw frame while the
-# operator still gets a 720p view. Via husarion_depthai_pipeline (RGBDual).
+# operator still gets a 720p view. Custom husarion_depthai_pipeline plugin (RGBDual,
+# independent raw/enc sizing via an on-chip ImageManip) — see camera-params-dual-rgb.yaml.
 /**:
   ros__parameters:
     oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']
