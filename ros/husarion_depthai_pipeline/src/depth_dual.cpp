@@ -47,6 +47,15 @@ DepthDual::DepthDual(const std::string& daiNodeName,
     right = std::make_unique<SensorWrapper>(getSocketName(rightSensInfo.socket), node, pipeline, device, rightSensInfo.socket, false);
     stereoCamNode = pipeline->create<dai::node::StereoDepth>();
     ph->declareParams(stereoCamNode);
+    // HARD CONSTRAINT (not just a preset convention): the disparity VIEW tap feeds the
+    // on-chip VideoEncoder, which only accepts 8-bit (NV12 / YUV400p). Subpixel makes
+    // the disparity output 16-bit and the encoder rejects it at runtime ("Arrived frame
+    // type (14) is not NV12 or YUV400p"). StereoParamHandler only auto-disables subpixel
+    // under stereo.i_low_bandwidth (which this plugin never sets — it drives its own
+    // encoder), so its i_subpixel default of `true` would crash a preset that forgot
+    // stereo.i_subpixel=false. Force it off here so the encoder tap is always 8-bit.
+    // (The metric DEPTH raw stays 16-bit regardless — subpixel only refines its precision.)
+    stereoCamNode->setSubpixel(false);
     setXinXout(pipeline);
     left->link(stereoCamNode->left);
     right->link(stereoCamNode->right);

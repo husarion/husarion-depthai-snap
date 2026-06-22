@@ -47,11 +47,14 @@ namespace dai_nodes {
 // DISPARITY as grayscale H.264 — a viewable visualization only. Depth DATA always
 // travels as the raw 16UC1 topic. Same dual-publish shape as RGBDual.
 //
-// CONSTRAINT: the preset MUST set stereo.i_subpixel=false. Subpixel makes the
-// disparity output 16-bit, which the OAK VideoEncoder rejects ("Arrived frame type
-// (14) is not NV12 or YUV400p (8-bit Gray)"). The metric depth raw stays 16-bit
-// regardless. A future subpixel-depth + 8-bit-preview combo needs an ImageManip
-// 16->8-bit on the encoder tap.
+// CONSTRAINT: subpixel must be OFF. Subpixel makes the disparity output 16-bit,
+// which the OAK VideoEncoder rejects ("Arrived frame type (14) is not NV12 or
+// YUV400p (8-bit Gray)"). The metric depth raw stays 16-bit regardless. The ctor
+// now FORCES stereoCamNode->setSubpixel(false) (the param default is true and is
+// only auto-disabled under stereo.i_low_bandwidth, which this plugin never sets),
+// so a preset that forgets stereo.i_subpixel=false can no longer crash the encoder;
+// keep it in the preset for clarity. A future subpixel-depth + 8-bit-preview combo
+// needs an ImageManip 16->8-bit on the encoder tap.
 class DepthDual : public depthai_ros_driver::dai_nodes::BaseNode {
    public:
     explicit DepthDual(const std::string& daiNodeName,
