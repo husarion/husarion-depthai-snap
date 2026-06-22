@@ -64,19 +64,19 @@ ______________________________________________________________________
 
 ## 2. Tech stack
 
-| Layer | Technology |
-| -- | -- |
-| Packaging | snapcraft (\`extensions: ros2-{humble |
-| Manifest templating | Jinja2 (`render_template.py` + `ROS_DISTRO` env var) |
-| Application language | Python (ROS 2 launch), Bash (hooks + wrappers), C++ via `depthai-ros` (apt) |
-| ROS 2 | `humble` or `jazzy` (matrix) |
-| Camera SDK | `depthai-core` + `depthai_ros_driver` (apt: `ros-{distro}-depthai-ros`) |
-| Image transport | `image_transport`, `image_transport_plugins`, `ffmpeg_image_transport` (libx264) |
-| RMW | FastDDS (default from extension) + Cyclone DDS (`rmw-cyclonedds-cpp`); selected at runtime |
-| DDS XML | FastDDS profiles (UDP, SHM) + CycloneDDS XML (UDP localhost). Files in `husarion-snap-common@0.11.0`. |
-| CI | GitHub Actions (`snapcore/action-build`, `snapcore/action-publish`) |
-| Build orchestration | `just` (justfile) |
-| External shared | [`husarion/husarion-snap-common@0.11.0`](https://github.com/husarion/husarion-snap-common) — common ROS configuration / hooks / validators |
+| Layer                | Technology                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Packaging            | snapcraft (\`extensions: ros2-{humble                                                                                                      |
+| Manifest templating  | Jinja2 (`render_template.py` + `ROS_DISTRO` env var)                                                                                       |
+| Application language | Python (ROS 2 launch), Bash (hooks + wrappers), C++ via `depthai-ros` (apt)                                                                |
+| ROS 2                | `humble` or `jazzy` (matrix)                                                                                                               |
+| Camera SDK           | `depthai-core` + `depthai_ros_driver` (apt: `ros-{distro}-depthai-ros`)                                                                    |
+| Image transport      | `image_transport`, `image_transport_plugins`, `ffmpeg_image_transport` (libx264)                                                           |
+| RMW                  | FastDDS (default from extension) + Cyclone DDS (`rmw-cyclonedds-cpp`); selected at runtime                                                 |
+| DDS XML              | FastDDS profiles (UDP, SHM) + CycloneDDS XML (UDP localhost). Files in `husarion-snap-common@0.11.0`.                                      |
+| CI                   | GitHub Actions (`snapcore/action-build`, `snapcore/action-publish`)                                                                        |
+| Build orchestration  | `just` (justfile)                                                                                                                          |
+| External shared      | [`husarion/husarion-snap-common@0.11.0`](https://github.com/husarion/husarion-snap-common) — common ROS configuration / hooks / validators |
 
 ______________________________________________________________________
 
@@ -99,10 +99,18 @@ husarion-depthai-snap/
 │       ├── apply_defaults.sh        # idempotent driver.* defaults; called by install + post-refresh
 │       ├── image_view_launcher.sh   # helper for previewing RGB via ffmpeg image transport
 │       ├── post_install.sh          # snap connect raw-usb/hardware-observe/shm + restart daemon
-│       ├── camera-params-default.yaml          # RGB preset
-│       └── camera-params-oak-d-pro-poe.yaml    # RGBD + PoE preset (i_ip: 10.15.20.6)
+│       ├── camera-params-default.yaml          # RGB preset (host re-encode)
+│       ├── camera-params-rgb-h264-720p30.yaml  # chip H.264 only (rgb-h264-* family)
+│       ├── camera-params-rgb-raw-720p-h264-720p.yaml  # dual: raw + chip H.264 (rgb-raw-*-h264-* family, custom plugin)
+│       ├── camera-params-rgbd-rgb-h264-720p-depth-raw-disp-h264.yaml  # RGB+depth dual (RGBDDual)
+│       ├── camera-params-oak-d-pro-poe.yaml    # RGBD + PoE preset (i_ip: 10.15.20.6)
 │       └── ffmpeg-params-default.yaml          # libx264 / ultrafast / zerolatency
-├── justfile                         # build / install / iterate / publish / swap-enable / lxd-cache
+├── ros/
+│   └── husarion_depthai_pipeline/   # custom depthai_ros_driver BasePipeline plugin (ament/colcon, NO fork)
+│       ├── src/{rgb_dual,depth_dual,dual_pipeline}.cpp   # RGBDual / DepthDual nodes + plugin classes
+│       ├── plugins.xml              # pluginlib export (RGBDual, RGBDDual) → autoloaded via camera.i_pipeline_type
+│       └── CMakeLists.txt
+├── justfile                         # build / install / iterate / publish / swap-enable (8G) / lxd-cache
 ├── README.md                        # README for the end user
 ├── LICENSE                          # Apache-2.0
 ├── CLAUDE.md                        # AI guidelines (THIS kind of file)
@@ -120,16 +128,17 @@ husarion-depthai-snap/
 
 ### Where things go in the final snap
 
-| Source | Destination in the snap | Mechanism |
-| -- | -- | -- |
-| `snap/local/*.sh` | `$SNAP/usr/bin/` | part `local-files` (plugin: dump) |
-| `snap/local/*.py` | `$SNAP/usr/bin/` | same as above |
-| `snap/local/*.yaml` | `$SNAP/usr/share/husarion-depthai/config/` (read-only template) → `$SNAP_DATA/` (writable runtime via install + post-refresh hooks) | same as above + hooks |
-| `husarion-snap-common@0.11.0/local-ros/*.sh` | `$SNAP/usr/bin/` | part `husarion-snap-common` (plugin: dump from git) |
-| `husarion-snap-common@0.11.0/local-ros/*.xml` | `$SNAP/usr/share/husarion-snap-common/config/` | same as above |
-| `husarion-snap-common@0.11.0/local-ros/ros.env` | `$SNAP/usr/share/husarion-snap-common/config/` | same as above |
-| `yq` from GitHub releases (v4.35.1) | `$SNAP/usr/bin/yq` | override-build + override-prime |
-| apt: `ros-{distro}-depthai-ros` (+ image_transport, ffmpeg, …) | `$SNAP/opt/ros/{distro}/...` | stage-packages in part `husarion-depthai` |
+| Source                                                         | Destination in the snap                                                                                                             | Mechanism                                                                                                                                               |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `snap/local/*.sh`                                              | `$SNAP/usr/bin/`                                                                                                                    | part `local-files` (plugin: dump)                                                                                                                       |
+| `snap/local/*.py`                                              | `$SNAP/usr/bin/`                                                                                                                    | same as above                                                                                                                                           |
+| `snap/local/*.yaml`                                            | `$SNAP/usr/share/husarion-depthai/config/` (read-only template) → `$SNAP_DATA/` (writable runtime via install + post-refresh hooks) | same as above + hooks                                                                                                                                   |
+| `husarion-snap-common@0.11.0/local-ros/*.sh`                   | `$SNAP/usr/bin/`                                                                                                                    | part `husarion-snap-common` (plugin: dump from git)                                                                                                     |
+| `husarion-snap-common@0.11.0/local-ros/*.xml`                  | `$SNAP/usr/share/husarion-snap-common/config/`                                                                                      | same as above                                                                                                                                           |
+| `husarion-snap-common@0.11.0/local-ros/ros.env`                | `$SNAP/usr/share/husarion-snap-common/config/`                                                                                      | same as above                                                                                                                                           |
+| `yq` from GitHub releases (v4.35.1)                            | `$SNAP/usr/bin/yq`                                                                                                                  | override-build + override-prime                                                                                                                         |
+| apt: `ros-{distro}-depthai-ros` (+ image_transport, ffmpeg, …) | `$SNAP/opt/ros/{distro}/...`                                                                                                        | stage-packages in part `husarion-depthai`                                                                                                               |
+| `ros/husarion_depthai_pipeline/`                               | `$SNAP/opt/ros/{distro}/lib/libhusarion_depthai_pipeline.so` (+ plugins.xml, ament index)                                           | part `husarion-depthai-pipeline` (plugin: colcon) — built against the staged driver; pluginlib autoloads it when a preset sets `camera.i_pipeline_type` |
 
 ______________________________________________________________________
 
@@ -174,6 +183,8 @@ husarion-depthai (snap)
 /<ns>/<name>/stereo/image_raw               # depth (if i_pipeline_type: RGBD)
 /<ns>/<name>/points                         # PointCloud2 (from PointCloudXyzrgbNode)
 ```
+
+With a dual-output preset (`camera.i_pipeline_type: husarion_depthai::pipeline_gen::RGBDual` / `RGBDDual`, the custom plugin in `ros/`) the same camera additionally publishes the OAK chip's hardware H.264 alongside the raw, simultaneously — `/<ns>/<name>/rgb/image_raw/compressed` (FFMPEGPacket, on-chip), and for `RGBDDual` also `/<ns>/<name>/stereo/image_raw/compressed` (disparity grayscale H.264, a lossy 2D depth *view*; the metric 16UC1 depth stays on `/stereo/image_raw`). Those presets set `oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']` so the raw stream's transport republishers don't collide with the on-chip FFMPEGPacket on `…/compressed`. See README.md / snap/local/AGENTS.md for the preset family + the depth `i_subpixel=false` constraint.
 
 ______________________________________________________________________
 
@@ -286,14 +297,14 @@ ______________________________________________________________________
 
 ## 6. External integrations
 
-| Integration | Method | Pinned version |
-| -- | -- | -- |
-| `husarion-snap-common` | git clone in `parts.husarion-snap-common.source` | branch/tag `0.11.0` |
-| `depthai-ros` | apt (`ros-{distro}-depthai-ros`) from the ROS 2 distro repo | dynamic (`apt-cache policy …\| Candidate`) |
-| `yq` | curl from GitHub releases | `v4.35.1` |
-| ROS 2 base | snapcraft extension `ros2-{distro}-ros-base` | distro = humble \| jazzy |
-| Snap Store | `snapcore/action-publish@v1` | tracks: `humble/edge`, `humble/candidate`, `jazzy/edge`, `jazzy/candidate` |
-| OAK-x camera | USB (raw-usb plug) or PoE/IP (preset `oak-d-pro-poe`, `i_ip: 10.15.20.6`) | — |
+| Integration            | Method                                                                    | Pinned version                                                             |
+| ---------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `husarion-snap-common` | git clone in `parts.husarion-snap-common.source`                          | branch/tag `0.11.0`                                                        |
+| `depthai-ros`          | apt (`ros-{distro}-depthai-ros`) from the ROS 2 distro repo               | dynamic (`apt-cache policy …\| Candidate`)                                 |
+| `yq`                   | curl from GitHub releases                                                 | `v4.35.1`                                                                  |
+| ROS 2 base             | snapcraft extension `ros2-{distro}-ros-base`                              | distro = humble \| jazzy                                                   |
+| Snap Store             | `snapcore/action-publish@v1`                                              | tracks: `humble/edge`, `humble/candidate`, `jazzy/edge`, `jazzy/candidate` |
+| OAK-x camera           | USB (raw-usb plug) or PoE/IP (preset `oak-d-pro-poe`, `i_ip: 10.15.20.6`) | —                                                                          |
 
 ______________________________________________________________________
 
@@ -363,20 +374,20 @@ ______________________________________________________________________
 
 **Coverage versus upstream `camera.launch.py` jazzy 2.12.2**:
 
-| Upstream feature | Status here |
-| -- | -- |
-| `ParameterFile(LaunchConfiguration("params_file"), allow_substs=True)` | ✅ |
-| `IfCondition(rectify_rgb)` + RectifyNode | ✅ (per-camera name) |
-| `IfCondition(pointcloud.enable)` + PointCloudXyzrgbNode | ✅ as `enable_pointcloud` |
-| Sync overrides (`pipeline_gen.i_enable_sync`, `rgb.i_synced`, `stereo.i_synced`) | ✅ injected when PCL on |
-| `tf_params` from `publish_tf_from_calibration` + `override_cam_model` | ❌ removed as dead (Husarion uses own robot URDF; would conflict) |
-| `target_container` namespace-aware | ✅ (with leading `/`) |
-| Default `camera_model="OAK-D-PRO"` | ✅ aligned (also in `snap/hooks/install`) |
-| Default `rectify_rgb="true"` | ✅ aligned |
-| `Node(rviz2)` + `use_rviz` | ❌ not needed (we have `image_view_launcher.sh`) |
-| `IncludeLaunchDescription(urdf_launch.py)` | ❌ deliberately omitted |
-| `rs_compat` (RealSense compat) + `enable_color/depth/infra*`, `*_profile` args | ❌ deliberately omitted |
-| `setup_launch_prefix` (gdb/valgrind/perf) | ❌ omitted (snap strict confinement limits debug tools anyway) |
+| Upstream feature                                                                 | Status here                                                       |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `ParameterFile(LaunchConfiguration("params_file"), allow_substs=True)`           | ✅                                                                |
+| `IfCondition(rectify_rgb)` + RectifyNode                                         | ✅ (per-camera name)                                              |
+| `IfCondition(pointcloud.enable)` + PointCloudXyzrgbNode                          | ✅ as `enable_pointcloud`                                         |
+| Sync overrides (`pipeline_gen.i_enable_sync`, `rgb.i_synced`, `stereo.i_synced`) | ✅ injected when PCL on                                           |
+| `tf_params` from `publish_tf_from_calibration` + `override_cam_model`            | ❌ removed as dead (Husarion uses own robot URDF; would conflict) |
+| `target_container` namespace-aware                                               | ✅ (with leading `/`)                                             |
+| Default `camera_model="OAK-D-PRO"`                                               | ✅ aligned (also in `snap/hooks/install`)                         |
+| Default `rectify_rgb="true"`                                                     | ✅ aligned                                                        |
+| `Node(rviz2)` + `use_rviz`                                                       | ❌ not needed (we have `image_view_launcher.sh`)                  |
+| `IncludeLaunchDescription(urdf_launch.py)`                                       | ❌ deliberately omitted                                           |
+| `rs_compat` (RealSense compat) + `enable_color/depth/infra*`, `*_profile` args   | ❌ deliberately omitted                                           |
+| `setup_launch_prefix` (gdb/valgrind/perf)                                        | ❌ omitted (snap strict confinement limits debug tools anyway)    |
 
 **Future decision**: could switch to `IncludeLaunchDescription(camera.launch.py)` mapping our `driver.*` to upstream args, but we'd lose control over node naming. Low priority — current coverage is complete.
 
@@ -388,17 +399,17 @@ ______________________________________________________________________
 
 ## 8. Extension points
 
-| Add | Where |
-| -- | -- |
-| New `driver.X` parameter | `snap/hooks/{configure,install}` + `snap/local/{launcher.sh,depthai.launch.py}` (4 spots) |
-| New camera YAML preset | add `camera-params-<NAME>.yaml` to `snap/local/` |
-| New ffmpeg YAML preset | add `ffmpeg-params-<NAME>.yaml` to `snap/local/` |
-| New DDS transport | PR to `husarion/husarion-snap-common` (`local-ros/rmw/<impl>/<NAME>.xml`) + bump pin in Jinja |
-| New apt dependency | `snapcraft_template.yaml.jinja2` → `parts.husarion-depthai.stage-packages` |
-| New plug (e.g. `gpio`) | `snapcraft_template.yaml.jinja2` → `apps.daemon.plugs` + `apps.husarion-depthai.plugs` + `post_install.sh` (snap connect) |
-| New ROS distro (e.g. `kilted`) | Jinja conditions on `core` per distro + matrix in CI + entry in `justfile` |
-| New app (e.g. `husarion-depthai.calibrate`) | new entry in `apps:` in Jinja + script in `snap/local/` |
-| New parameter validator | edit `husarion-snap-common/local-ros/utils.sh` + bump pin |
+| Add                                         | Where                                                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| New `driver.X` parameter                    | `snap/hooks/{configure,install}` + `snap/local/{launcher.sh,depthai.launch.py}` (4 spots)                                 |
+| New camera YAML preset                      | add `camera-params-<NAME>.yaml` to `snap/local/`                                                                          |
+| New ffmpeg YAML preset                      | add `ffmpeg-params-<NAME>.yaml` to `snap/local/`                                                                          |
+| New DDS transport                           | PR to `husarion/husarion-snap-common` (`local-ros/rmw/<impl>/<NAME>.xml`) + bump pin in Jinja                             |
+| New apt dependency                          | `snapcraft_template.yaml.jinja2` → `parts.husarion-depthai.stage-packages`                                                |
+| New plug (e.g. `gpio`)                      | `snapcraft_template.yaml.jinja2` → `apps.daemon.plugs` + `apps.husarion-depthai.plugs` + `post_install.sh` (snap connect) |
+| New ROS distro (e.g. `kilted`)              | Jinja conditions on `core` per distro + matrix in CI + entry in `justfile`                                                |
+| New app (e.g. `husarion-depthai.calibrate`) | new entry in `apps:` in Jinja + script in `snap/local/`                                                                   |
+| New parameter validator                     | edit `husarion-snap-common/local-ros/utils.sh` + bump pin                                                                 |
 
 ______________________________________________________________________
 

@@ -191,6 +191,8 @@ The Movidius VPU on the OAK has a dedicated H.264/H.265 encoder, exposed by `dep
 
 The chip encoder is still useful for streaming-only deployments (no rectified image / PCL needed). Available as opt-in via `driver.camera-params=rgb-h264-720p30` + `driver.rectify-rgb=false`. See `camera-params-rgb-h264-720p30.yaml` in the preset list below.
 
+**The raw/encoded exclusivity above is the stock-driver limitation — our custom `husarion_depthai_pipeline` plugin (`ros/`) escapes it.** It taps one `ColorCamera.video` output to BOTH a raw XLinkOut AND the on-chip VideoEncoder, so the `rgb-raw-*-h264-*` / `rgbd-*` presets publish raw `/image_raw` (for autonomy/rect/PCL) AND on-chip H.264 `/image_raw/compressed` (telepresence, ~0 host CPU) simultaneously — no fork, no host encode, no new snap interface. That's now the recommended way to get the chip encoder's CPU win without losing the raw pipeline; the bullets above only apply to the stock `i_low_bandwidth` path. (Bug #687's `i_publish_compressed=false` trap is moot — the plugin always publishes compressed.)
+
 ## Workflow
 
 ### Before bumping apt dependencies (especially `ros-{distro}-depthai-ros`)
@@ -240,7 +242,9 @@ Available presets (1280x720 @ 30 fps, low-latency queue=4):
 - `camera-params-oak-d-pro.yaml` — RGBD + IMU + IR projector + flood, USB; stereo with subpixel + lr_check + align_depth.
 - `camera-params-oak-d-pro-poe.yaml` — same as above + `i_ip: 10.15.20.6` (PoE; MJPEG quality 50 to fit Ethernet bandwidth; if your IP differs — copy on the host into a new preset).
 - `camera-params-oak-d-pro-slam.yaml` — oak-d-pro tuned for SLAM/VIO: manual exposure (no jumps to break feature trackers) + lower ISO. Tune `r_exposure`/`r_iso` per environment (defaults aimed at indoor lit office).
-- `camera-params-rgb-h264-720p30.yaml` — **opt-in**, chip-side H.264 encoder (`i_low_bandwidth=true`, profile H264_MAIN, 4 Mbps, 2s GOP). ~98% daemon CPU win vs libx264 but drops raw `/image_raw`, rect, depth, and PCL — streaming-only use. See "Pitfalls → Why default doesn't use the OAK chip's hardware H.264 encoder". Pair with `sudo snap set husarion-depthai driver.rectify-rgb=false`.
+- `camera-params-rgb-h264-720p30.yaml` — **chip-side H.264 encoder only** (`i_low_bandwidth=true`, profile 0 = H264_BASELINE, ~2.5 Mbps, ~1 s GOP). ~98% daemon CPU win vs libx264 but drops raw `/image_raw`, rect, depth, and PCL — streaming-only use. fps/res variants: `rgb-h264-{360p30,360p60,720p60,1080p60,4k30}`. The launcher force-disables rectify/PCL for the `rgb-h264-*` family. See "Pitfalls → Why default doesn't use the OAK chip's hardware H.264 encoder".
+- `camera-params-rgb-raw-720p-h264-720p.yaml` (+ `-1080p-h264-1080p`, `-360p-h264-360p`, asymmetric `-1080p-h264-720p`, `-360p-h264-720p`) — **dual output: raw `/image_raw` AND on-chip H.264 `/image_raw/compressed` at once**, via the custom `husarion_depthai_pipeline` pluginlib plugin in `ros/` (selected by `camera.i_pipeline_type`, NOT a fork). Filename = format: `rgb-raw-<res>` is the raw leg, `h264-<res>` the encoder leg (independent sizing via on-chip ImageManip). Each suppresses the raw stream's image_transport republishers so `/compressed` carries only the on-chip FFMPEGPacket.
+- `camera-params-rgbd-rgb-h264-720p-depth-raw-disp-h264.yaml` — RGB dual + **depth dual** (`RGBDDual`): depth 16UC1 raw + disparity grayscale-H.264 *view* on `/stereo/image_raw{,/compressed}`. Needs a stereo OAK (verified OAK-D-LITE). `stereo.i_subpixel` is forced false in the node (8-bit disparity for the encoder).
 
 ### How to add a new DDS transport (XML)
 
