@@ -15,6 +15,10 @@
 # preset will add depth 16UC1 raw + disparity grayscale-H.264 view the same way.
 /**:
   ros__parameters:
+    # Suppress the raw stream's image_transport republisher plugins so the on-chip
+    # H.264 is the SOLE publisher on .../image_raw/compressed (otherwise the lazy
+    # CompressedImage republisher claims the same name → two types on one topic).
+    oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']
     camera:
       i_enable_imu: false                   # OAK-1: no IMU
       i_enable_ir: false                    # OAK-1: no IR

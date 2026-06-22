@@ -21,6 +21,7 @@ find_package(sensor_msgs REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   src/rgb_dual.cpp
+  src/depth_dual.cpp
   src/dual_pipeline.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC

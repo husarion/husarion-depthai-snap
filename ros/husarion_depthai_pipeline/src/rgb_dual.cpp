@@ -4,6 +4,7 @@
 #include "depthai/device/Device.hpp"
 #include "depthai/pipeline/Pipeline.hpp"
 #include "depthai/pipeline/node/ColorCamera.hpp"
+#include "depthai/pipeline/node/ImageManip.hpp"
 #include "depthai/pipeline/node/XLinkIn.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/img_pub.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/sensor_helpers.hpp"
@@ -21,7 +22,7 @@ RGBDual::RGBDual(const std::string& daiNodeName,
                  std::shared_ptr<rclcpp::Node> node,
                  std::shared_ptr<dai::Pipeline> pipeline,
                  dai::CameraBoardSocket socket = dai::CameraBoardSocket::CAM_A,
-                 depthai_ros_driver::dai_nodes::sensor_helpers::ImageSensor sensor = {"IMX378", "4k", {"12mp", "4k"}, dai::CameraSensorType::COLOR},
+                 depthai_ros_driver::dai_nodes::sensor_helpers::ImageSensor sensor = {"IMX378", "1080P", {"12MP", "4K", "1080P"}, dai::CameraSensorType::COLOR},
                  bool publish = true)
     : BaseNode(daiNodeName, node, pipeline) {
     RCLCPP_DEBUG(getLogger(), "Creating node %s", daiNodeName.c_str());
@@ -37,6 +38,15 @@ RGBDual::RGBDual(const std::string& daiNodeName,
 }
 RGBDual::~RGBDual() = default;
 
+int RGBDual::declInt(const std::string& name, int def) {
+    auto full = getName() + "." + name;
+    auto n = getROSNode();
+    if(!n->has_parameter(full)) {
+        n->declare_parameter<int>(full, def);
+    }
+    return static_cast<int>(n->get_parameter(full).as_int());
+}
+
 void RGBDual::setNames() {
     rawQName = getName() + "_raw";
     encQName = getName() + "_enc";
@@ -44,16 +54,34 @@ void RGBDual::setNames() {
 }
 
 void RGBDual::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
-    // Both publishers tap the SAME ColorCamera.video (NV12) output. depthai fans
-    // one output to many inputs, so the raw XLinkOut and the on-chip VideoEncoder
-    // run concurrently off one camera — the dual-output escape hatch.
-    auto rgbLink = [&](dai::Node::Input input) { colorCamNode->video.link(input); };
+    const int nativeW = ph->getParam<int>("i_width");
+    const int nativeH = ph->getParam<int>("i_height");
+    // 0 → use the camera's native video size. Otherwise the tap is ImageManip-resized.
+    rawW = declInt("i_raw_width", 0) ? declInt("i_raw_width", 0) : nativeW;
+    rawH = declInt("i_raw_height", 0) ? declInt("i_raw_height", 0) : nativeH;
+    encW = declInt("i_enc_width", 0) ? declInt("i_enc_width", 0) : nativeW;
+    encH = declInt("i_enc_height", 0) ? declInt("i_enc_height", 0) : nativeH;
+
+    // Build a link function for a tap at (w,h): direct off ColorCamera.video when
+    // it matches the native video size, else through an NV12 ImageManip resize.
+    // depthai fans one output to many inputs, so raw + encoder run concurrently.
+    auto makeTap = [&](int w, int h, std::shared_ptr<dai::node::ImageManip>& manip) -> std::function<void(dai::Node::Input)> {
+        if(w == nativeW && h == nativeH) {
+            return [this](dai::Node::Input in) { colorCamNode->video.link(in); };
+        }
+        manip = pipeline->create<dai::node::ImageManip>();
+        manip->initialConfig.setResize(w, h);
+        manip->initialConfig.setFrameType(dai::ImgFrame::Type::NV12);
+        manip->setMaxOutputFrameSize(w * h * 3 / 2 + 1024);  // NV12 = 1.5 bytes/px
+        colorCamNode->video.link(manip->inputImage);
+        return [manip](dai::Node::Input in) { manip->out.link(in); };
+    };
 
     if(ph->getParam<bool>("i_publish_topic")) {
         // Raw stream (autonomy): no encoder.
         utils::VideoEncoderConfig rawEnc;
         rawEnc.enabled = false;
-        rawPub = setupOutput(pipeline, rawQName, rgbLink, /*isSynced=*/false, rawEnc);
+        rawPub = setupOutput(pipeline, rawQName, makeTap(rawW, rawH, rawManip), /*isSynced=*/false, rawEnc);
 
         // Encoded stream (telepresence): the OAK hardware VideoEncoder. Profile /
         // bitrate / keyframe cadence come from the same i_low_bandwidth_* knobs the
@@ -64,7 +92,7 @@ void RGBDual::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
         encConfig.bitrate = ph->getParam<int>("i_low_bandwidth_bitrate");
         encConfig.frameFreq = ph->getParam<int>("i_low_bandwidth_frame_freq");
         encConfig.quality = ph->getParam<int>("i_low_bandwidth_quality");
-        encPub = setupOutput(pipeline, encQName, rgbLink, /*isSynced=*/false, encConfig);
+        encPub = setupOutput(pipeline, encQName, makeTap(encW, encH, encManip), /*isSynced=*/false, encConfig);
     }
 
     xinControl = pipeline->create<dai::node::XLinkIn>();
@@ -87,8 +115,6 @@ void RGBDual::setupQueues(std::shared_ptr<dai::Device> device) {
     basePub.socket = static_cast<dai::CameraBoardSocket>(ph->getParam<int>("i_board_socket_id"));
     basePub.calibrationFile = ph->getParam<std::string>("i_calibration_file");
     basePub.rectified = false;
-    basePub.width = ph->getParam<int>("i_width");
-    basePub.height = ph->getParam<int>("i_height");
     basePub.maxQSize = ph->getParam<int>("i_max_q_size");
     basePub.flipImage = ph->getParam<bool>("i_flip_published_image");
 
@@ -102,24 +128,33 @@ void RGBDual::setupQueues(std::shared_ptr<dai::Device> device) {
     baseConv.reverseSocketOrder = ph->getParam<bool>("i_reverse_stereo_socket_order");
 
     // Raw: plain image_transport camera publisher → <topic>/image_raw + <topic>/camera_info.
+    // (Suppress its republisher plugins via oak.rgb.image_raw.enable_pub_plugins:['image_transport/raw']
+    //  in the preset, so the on-chip H.264 is the sole publisher on .../compressed.)
     {
         utils::ImgConverterConfig conv = baseConv;
         conv.lowBandwidth = false;
         utils::ImgPublisherConfig pub = basePub;
         pub.publishCompressed = false;  // raw sensor_msgs/Image
         pub.topicSuffix = "/image_raw";
+        pub.width = rawW;
+        pub.height = rawH;
         rawPub->setup(device, conv, pub);
     }
-    // Encoded: on-chip H.264 → <topic>/image_raw/compressed (FFMPEGPacket). Its
-    // camera_info is parked under image_raw/ to avoid clobbering the raw stream's
-    // canonical <topic>/camera_info.
+    // Encoded: on-chip H.264 → <topic>/image_raw/compressed (FFMPEGPacket). The
+    // FFMPEGPacket codec token is set to "h264" (the bitstream IS on-chip h264, not
+    // libx264); the cockpit keys the "sensor" provenance badge off the /compressed
+    // suffix, and accepts h264/libx264/h264_* alike. camera_info parked under
+    // image_raw/ to avoid clobbering the raw stream's canonical <topic>/camera_info.
     {
         utils::ImgConverterConfig conv = baseConv;
         conv.lowBandwidth = true;
+        conv.ffmpegEncoder = "h264";
         utils::ImgPublisherConfig pub = basePub;
         pub.publishCompressed = true;  // FFMPEGPacket (H.264)
         pub.compressedTopicSuffix = "/image_raw/compressed";
         pub.infoSuffix = "/image_raw";
+        pub.width = encW;
+        pub.height = encH;
         encPub->setup(device, conv, pub);
     }
     controlQ = device->getInputQueue(controlQName);

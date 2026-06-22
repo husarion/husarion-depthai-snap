@@ -1,0 +1,23 @@
+---
+# Dual-output RGB @ 360p — raw 640x360 (lightweight autonomy) + on-chip H.264
+# 640x360 @30, ~1 Mbps (telepresence over weak/congested links). Both legs stay
+# alive on a poor WiFi where 720p/1080p would buffer. Via husarion_depthai_pipeline.
+/**:
+  ros__parameters:
+    oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_nn_type: none
+      i_pipeline_type: 'husarion_depthai::pipeline_gen::RGBDual'
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false
+      i_fps: 30.0
+      i_max_q_size: 4
+      i_resolution: '1080P'
+      i_isp_num: 1                           # ISP scale 1/3: 1920x1080 → 640x360
+      i_isp_den: 3
+      i_low_bandwidth_profile: 0             # H264_BASELINE
+      i_low_bandwidth_bitrate: 1000000       # 1 Mbps @ 360p30 (ultra-low)
+      i_low_bandwidth_frame_freq: 30

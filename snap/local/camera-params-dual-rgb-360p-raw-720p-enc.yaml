@@ -1,0 +1,27 @@
+---
+# Asymmetric dual-output RGB — lightweight raw, sharper link: raw 640x360
+# (image_raw) + on-chip H.264 1280x720 (image_raw/compressed), both @30. Native
+# video is 720p (the encoder taps it directly); the raw tap is ImageManip-resized
+# down to 360p — for local control loops that want a small raw frame while the
+# operator still gets a 720p view. Via husarion_depthai_pipeline (RGBDual).
+/**:
+  ros__parameters:
+    oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_nn_type: none
+      i_pipeline_type: 'husarion_depthai::pipeline_gen::RGBDual'
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false
+      i_fps: 30.0
+      i_max_q_size: 4
+      i_resolution: '1080P'
+      i_isp_num: 2                           # ISP scale 2/3: native video = 1280x720 (enc tap)
+      i_isp_den: 3
+      i_raw_width: 640                        # raw tap ImageManip-resized to 360p
+      i_raw_height: 360
+      i_low_bandwidth_profile: 0             # H264_BASELINE
+      i_low_bandwidth_bitrate: 4000000       # 4 Mbps @ 720p30 encoded
+      i_low_bandwidth_frame_freq: 30

@@ -1,0 +1,26 @@
+---
+# Asymmetric dual-output RGB — full-res raw for autonomy, downscaled H.264 for the
+# link: raw 1920x1080 (image_raw) + on-chip H.264 1280x720 (image_raw/compressed),
+# both @30. The encoder taps an on-chip ImageManip that resizes the 1080p video to
+# 720p, so autonomy keeps full detail while telepresence rides a lighter stream.
+# Via husarion_depthai_pipeline (RGBDual, independent raw/enc sizing).
+/**:
+  ros__parameters:
+    oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_nn_type: none
+      i_pipeline_type: 'husarion_depthai::pipeline_gen::RGBDual'
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false
+      i_fps: 30.0
+      i_max_q_size: 4
+      i_resolution: '1080P'
+      i_set_isp_scale: false                 # native video = 1920x1080 (raw tap)
+      i_enc_width: 1280                       # encoder tap ImageManip-resized to 720p
+      i_enc_height: 720
+      i_low_bandwidth_profile: 0             # H264_BASELINE
+      i_low_bandwidth_bitrate: 4000000       # 4 Mbps @ 720p30 encoded
+      i_low_bandwidth_frame_freq: 30

@@ -9,6 +9,7 @@ class DataInputQueue;
 enum class CameraBoardSocket;
 namespace node {
 class ColorCamera;
+class ImageManip;
 class XLinkIn;
 }  // namespace node
 }  // namespace dai
@@ -42,9 +43,13 @@ namespace dai_nodes {
 // encode, no /dev/dri, no new snap interface. The raw path is a host XLinkOut tap.
 // One dai output fanned out to two consumers (XLinkOut + VideoEncoder).
 //
-// This is the "dual-publish" BaseNode the SPEC calls for, written generic over
-// the publish mechanics so the depth stream (Phase 3: depth 16UC1 raw + disparity
-// grayscale H.264 view) can reuse setupDualOutput() against a StereoDepth source.
+// Raw and encoder taps can be sized INDEPENDENTLY (rgb.i_raw_* / rgb.i_enc_*):
+// when a tap's target size differs from the camera's native video size, an
+// ImageManip resize is spliced in for that tap. This serves asymmetric presets
+// (e.g. full-res raw for autonomy + downscaled low-bitrate H.264 for the link).
+//
+// Written generic over the publish mechanics so the depth stream (depth 16UC1
+// raw + disparity grayscale H.264 view) can reuse the same dual-publish shape.
 class RGBDual : public depthai_ros_driver::dai_nodes::BaseNode {
    public:
     explicit RGBDual(const std::string& daiNodeName,
@@ -63,12 +68,17 @@ class RGBDual : public depthai_ros_driver::dai_nodes::BaseNode {
     std::vector<std::shared_ptr<depthai_ros_driver::dai_nodes::sensor_helpers::ImagePublisher>> getPublishers() override;
 
    private:
+    // Declare (default `def`) + read an int param under this node's "<name>." prefix.
+    int declInt(const std::string& name, int def);
+
     std::shared_ptr<depthai_ros_driver::dai_nodes::sensor_helpers::ImagePublisher> rawPub, encPub;
     std::shared_ptr<dai::node::ColorCamera> colorCamNode;
+    std::shared_ptr<dai::node::ImageManip> rawManip, encManip;  // only when a tap is resized
     std::unique_ptr<depthai_ros_driver::param_handlers::SensorParamHandler> ph;
     std::shared_ptr<dai::DataInputQueue> controlQ;
     std::shared_ptr<dai::node::XLinkIn> xinControl;
     std::string rawQName, encQName, controlQName;
+    int rawW{0}, rawH{0}, encW{0}, encH{0};
 };
 
 }  // namespace dai_nodes

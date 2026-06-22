@@ -6,4 +6,11 @@
             output simultaneously. No host encode, no new snap interface.
         </description>
     </class>
+    <class type="husarion_depthai::pipeline_gen::RGBDDual" base_class_type="depthai_ros_driver::pipeline_gen::BasePipeline">
+        <description>
+            RGB + depth dual output (DRAFT, requires a stereo OAK): RGBDual plus a
+            depth node publishing depth 16UC1 raw (autonomy) and disparity grayscale
+            H.264 view (telepresence). Unverified on OAK-1.
+        </description>
+    </class>
 </library>

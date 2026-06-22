@@ -1,0 +1,23 @@
+---
+# Dual-output RGB @ 1080p — raw 1920x1080 (autonomy) + on-chip H.264 1920x1080
+# (telepresence), both @30 from one OAK via the husarion_depthai_pipeline plugin.
+# Full-HD detail on both legs; ~93 MB/s raw + ~8.5 Mbps encoded (USB3 SUPER has
+# headroom). See camera-params-dual-rgb.yaml for the design notes.
+/**:
+  ros__parameters:
+    oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']
+    camera:
+      i_enable_imu: false
+      i_enable_ir: false
+      i_nn_type: none
+      i_pipeline_type: 'husarion_depthai::pipeline_gen::RGBDual'
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false
+      i_fps: 30.0
+      i_max_q_size: 4
+      i_resolution: '1080P'
+      i_set_isp_scale: false                 # no downscale → native 1920x1080
+      i_low_bandwidth_profile: 0             # H264_BASELINE
+      i_low_bandwidth_bitrate: 8500000       # 8.5 Mbps @ 1080p30
+      i_low_bandwidth_frame_freq: 30
