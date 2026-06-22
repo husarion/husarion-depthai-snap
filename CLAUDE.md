@@ -189,7 +189,7 @@ The Movidius VPU on the OAK has a dedicated H.264/H.265 encoder, exposed by `dep
 - **Open upstream bugs**: [#717](https://github.com/luxonis/depthai-ros/issues/717) (`low_bandwidth=true` + `stereo.i_synced=true` causes RGB corruption — and we set `i_synced=true` whenever `enable-pointcloud=true`) and [#687](https://github.com/luxonis/depthai-ros/issues/687) (`i_publish_compressed=false` triggers host-side stride decode bug).
 - **`i_low_bandwidth_ffmpeg_encoder` is dead.** Declared in `sensor_param_handler.cpp` with default `"libx264"`, never read back. Only ends up as a string label in the FFMPEGPacket's `encoding` field — purely metadata, doesn't switch encoders. Don't waste time tuning it.
 
-The chip encoder is still useful for streaming-only deployments (no rectified image / PCL needed). Available as opt-in via `driver.camera-params=streaming-h264` + `driver.rectify-rgb=false`. See `camera-params-streaming-h264.yaml` in the preset list below.
+The chip encoder is still useful for streaming-only deployments (no rectified image / PCL needed). Available as opt-in via `driver.camera-params=rgb-h264-720p30` + `driver.rectify-rgb=false`. See `camera-params-rgb-h264-720p30.yaml` in the preset list below.
 
 ## Workflow
 
@@ -240,7 +240,7 @@ Available presets (1280x720 @ 30 fps, low-latency queue=4):
 - `camera-params-oak-d-pro.yaml` — RGBD + IMU + IR projector + flood, USB; stereo with subpixel + lr_check + align_depth.
 - `camera-params-oak-d-pro-poe.yaml` — same as above + `i_ip: 10.15.20.6` (PoE; MJPEG quality 50 to fit Ethernet bandwidth; if your IP differs — copy on the host into a new preset).
 - `camera-params-oak-d-pro-slam.yaml` — oak-d-pro tuned for SLAM/VIO: manual exposure (no jumps to break feature trackers) + lower ISO. Tune `r_exposure`/`r_iso` per environment (defaults aimed at indoor lit office).
-- `camera-params-streaming-h264.yaml` — **opt-in**, chip-side H.264 encoder (`i_low_bandwidth=true`, profile H264_MAIN, 4 Mbps, 2s GOP). ~98% daemon CPU win vs libx264 but drops raw `/image_raw`, rect, depth, and PCL — streaming-only use. See "Pitfalls → Why default doesn't use the OAK chip's hardware H.264 encoder". Pair with `sudo snap set husarion-depthai driver.rectify-rgb=false`.
+- `camera-params-rgb-h264-720p30.yaml` — **opt-in**, chip-side H.264 encoder (`i_low_bandwidth=true`, profile H264_MAIN, 4 Mbps, 2s GOP). ~98% daemon CPU win vs libx264 but drops raw `/image_raw`, rect, depth, and PCL — streaming-only use. See "Pitfalls → Why default doesn't use the OAK chip's hardware H.264 encoder". Pair with `sudo snap set husarion-depthai driver.rectify-rgb=false`.
 
 ### How to add a new DDS transport (XML)
 

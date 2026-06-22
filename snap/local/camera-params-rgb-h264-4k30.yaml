@@ -1,13 +1,13 @@
 ---
 # Chip-encoded H.264 stream — 4K (3840x2160) @ 30 fps (high-detail variant of
-# streaming-h264). Uses the OAK chip's hardware VideoEncoder; the i_low_bandwidth
+# chip-H.264 family). Uses the OAK chip's hardware VideoEncoder; the i_low_bandwidth
 # path drops raw /oak/rgb/image_raw and publishes the H.264 bitstream on
 # /oak/rgb/image_raw/compressed (ffmpeg_image_transport_msgs/FFMPEGPacket).
 #
 # OAK-D-PRO (IMX378) supports 4K @ 30 fps (not 60). 4K30 sits exactly at the
 # on-chip H.264 encoder ceiling (248 Mpix/s = 3840x2160x30), so this must be the
 # ONLY encoded stream — don't combine with another low_bandwidth sensor. Pair with
-# rectify-rgb=false + enable-pointcloud=false (forced off for streaming-h264*).
+# rectify-rgb=false + enable-pointcloud=false (forced off for rgb-h264-* / depth-disp-h264).
 /**:
   ros__parameters:
     camera:

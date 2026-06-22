@@ -1,12 +1,12 @@
 ---
 # Chip-encoded H.264 stream — 1080p @ 60 fps (smooth-motion teleop variant of
-# streaming-h264). Uses the OAK chip's hardware VideoEncoder; the i_low_bandwidth
+# chip-H.264 family). Uses the OAK chip's hardware VideoEncoder; the i_low_bandwidth
 # path drops raw /oak/rgb/image_raw and publishes the H.264 bitstream on
 # /oak/rgb/image_raw/compressed (ffmpeg_image_transport_msgs/FFMPEGPacket).
 #
 # OAK-D-PRO (IMX378) supports 1080P @ 60 fps natively; the on-chip H.264 encoder
 # (≤248 Mpix/s) handles 1080p60 at ~half its budget. Pair with rectify-rgb=false
-# + enable-pointcloud=false (the launcher forces these off for streaming-h264*).
+# + enable-pointcloud=false (the launcher forces these off for rgb-h264-* / depth-disp-h264).
 /**:
   ros__parameters:
     camera:

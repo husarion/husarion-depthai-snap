@@ -1,0 +1,35 @@
+---
+# Chip-encoded H.264 DEPTH stream — the OAK stereo node's 8-bit DISPARITY,
+# H.264-encoded ON-CHIP by depthai_ros_driver (stereo.i_low_bandwidth) and
+# published as ffmpeg_image_transport_msgs/FFMPEGPacket on the stereo topic's
+# /compressed suffix. The host reconstructs depth = focal*baseline/disparity.
+#
+# HONEST CAVEATS — this is LOSSY, COARSE depth, NOT metric-accurate:
+#   * the on-chip encoder is 8-bit, so depth comes from 8-bit disparity and
+#     subpixel is FORCE-DISABLED in low_bandwidth mode → quantized depth whose
+#     error grows ~quadratically with range (near-field fine, far-field poor);
+#   * H.264 is lossy → block/edge artifacts map to depth errors at boundaries.
+#   Use for coarse obstacle sensing / low-bandwidth visualization, NOT metrology.
+#   For accurate low-bandwidth depth use compressed_depth_image_transport (PNG/RVL).
+#
+# The cockpit webui has NO depth viewer — this stream is for EXTERNAL consumers
+# (a custom node, foxglove-direct, ros2 bag). RGB stays lazy (unsubscribed).
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: false
+      i_enable_ir: true                   # IR projector improves stereo on low-texture scenes
+      i_nn_type: none
+      i_pipeline_type: RGBD               # need the stereo node; RGB stays lazy below
+    rgb:
+      i_enable_lazy_publisher: true       # RGB idle unless subscribed (depth-focused preset)
+      i_fps: 30.0
+      i_resolution: '1080P'
+    stereo:
+      i_low_bandwidth: true               # route the 8-bit disparity to the on-chip VideoEncoder
+      i_low_bandwidth_profile: 0          # H264_BASELINE (default 4 = MJPEG!) — no B-frames, low latency
+      i_low_bandwidth_bitrate: 2000000    # 2 Mbps — disparity is low-entropy, generous
+      i_low_bandwidth_frame_freq: 30      # encoder frame cadence = fps → ~1 s GOP
+      i_publish_compressed: true          # publish the chip H.264 as an FFMPEGPacket
+      i_output_disparity: true            # explicit (low_bandwidth forces disparity to the encoder)
+      i_subpixel: false                   # forced off in low_bandwidth; explicit for clarity

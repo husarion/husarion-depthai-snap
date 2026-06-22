@@ -1,6 +1,6 @@
 ---
 # ============================================================================
-# CANONICAL dual-output preset — the dual-rgb* family's reference file. The
+# CANONICAL dual-output preset — the rgb-raw-*-h264-* family's reference file. The
 # variants (-1080p, -360p, -*-raw-*-enc) point here for the how/why.
 # ============================================================================
 # Publishes BOTH representations of the RGB stream from one OAK at once, via the
@@ -30,7 +30,7 @@
 # topic, prefers .../compressed (passthrough, ~0 host CPU, badge sensor-h264) for
 # telepresence, and autonomy reads the raw. Decodes at full fps in the webui.
 #
-# Generic-over-streams plugin: dual-rgbd (class RGBDDual) adds a DRAFT depth path
+# Generic-over-streams plugin: rgbd-rgb-h264-720p-depth-raw-disp-h264 (class RGBDDual) adds a DRAFT depth path
 # (depth 16UC1 raw + disparity grayscale-H.264 view) the same way — UNVERIFIED,
 # needs a stereo OAK.
 /**:

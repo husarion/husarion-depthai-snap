@@ -85,7 +85,7 @@ void RGBDual::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
 
         // Encoded stream (telepresence): the OAK hardware VideoEncoder. Profile /
         // bitrate / keyframe cadence come from the same i_low_bandwidth_* knobs the
-        // stock streaming-h264 presets already use.
+        // stock chip-H.264 (rgb-h264-*) presets already use.
         utils::VideoEncoderConfig encConfig;
         encConfig.enabled = true;
         encConfig.profile = static_cast<dai::VideoEncoderProperties::Profile>(ph->getParam<int>("i_low_bandwidth_profile"));

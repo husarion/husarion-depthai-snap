@@ -15,18 +15,19 @@ LAUNCH_OPTIONS=()
 
 CAMERA_PARAMS="$(snapctl get driver.camera-params)"
 
-# Any chip-encoded H.264 preset (streaming-h264*, i_low_bandwidth=true) drops the
-# raw RGB topic, so the rectify + point-cloud nodes would have no input. Force
-# both off regardless of their snap config so selecting one of these presets from
-# the cockpit Manage tab can never produce a half-broken pipeline. Prefix match so
-# the resolution/fps variants (streaming-h264-1080p60, -4k30, -720p60, …) all qualify.
+# Chip-encoded H.264 presets that publish NO raw RGB (i_low_bandwidth=true) leave
+# the rectify + point-cloud nodes with no input. Force both off regardless of snap
+# config so selecting one from the cockpit Manage tab can never produce a half-broken
+# pipeline. Matches the raw-less families: `rgb-h264-*` (chip-only RGB, all res/fps
+# variants) and `depth-disp-h264` (disparity-view stream). NOT the dual `rgb-raw-*`
+# presets — those DO publish raw, so rectify/PCL are left to the operator's config.
 case "${CAMERA_PARAMS}" in
-  streaming-h264*) STREAMING_H264=true ;;
-  *)               STREAMING_H264=false ;;
+  rgb-h264-* | depth-disp-h264) NO_RAW_RGB=true ;;
+  *)                            NO_RAW_RGB=false ;;
 esac
 for OPTION in "${OPTIONS[@]}"; do
   VALUE="$(snapctl get "driver.${OPTION}")"
-  if [ "${STREAMING_H264}" = "true" ]; then
+  if [ "${NO_RAW_RGB}" = "true" ]; then
     case "${OPTION}" in
       rectify-rgb | enable-pointcloud) VALUE="false" ;;
     esac

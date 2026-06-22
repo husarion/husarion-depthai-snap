@@ -1,13 +1,13 @@
 ---
 # Chip-encoded H.264 stream — 720p (1280x720) @ 60 fps (lightweight low-latency
-# variant of streaming-h264, best for weak/constrained WiFi links). Uses the OAK
+# variant of the chip-H.264 family, best for weak/constrained WiFi links). Uses the OAK
 # chip's hardware VideoEncoder; the i_low_bandwidth path drops raw
 # /oak/rgb/image_raw and publishes H.264 on /oak/rgb/image_raw/compressed.
 #
 # IMX378 has no native 720P sensor mode, so this runs the 1080P mode @ 60 fps and
 # ISP-downscales 2/3 → 1280x720 (width 1280 is a multiple of 32, required by the
 # encoder). Fewer pixels + 60 fps = smoothest motion at the lowest bitrate. Pair
-# with rectify-rgb=false + enable-pointcloud=false (forced off for streaming-h264*).
+# with rectify-rgb=false + enable-pointcloud=false (forced off for rgb-h264-* / depth-disp-h264).
 /**:
   ros__parameters:
     camera:
