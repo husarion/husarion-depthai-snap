@@ -1,23 +1,30 @@
 ---
-# !!! DRAFT — requires an OAK-D-class STEREO camera; UNVERIFIED on the connected
-# OAK-1 (RGB-only). Selecting this on a single-sensor unit will fail at stereo init.
+# RGB + depth dual output via husarion_depthai_pipeline (RGBDDual). Requires an
+# OAK-D-class STEREO camera (on a single-sensor OAK-1 it fails at stereo init).
+# VERIFIED on an OAK-D-LITE (2026-06-22).
 #
-# RGB + depth dual output via husarion_depthai_pipeline (RGBDDual):
 #   /oak/rgb/image_raw                raw RGB Image            (autonomy)
 #   /oak/rgb/image_raw/compressed     on-chip H.264 RGB       (telepresence)
 #   /oak/stereo/image_raw             depth 16UC1 Image        (autonomy — METRIC)
-#   /oak/stereo/image_raw/compressed  disparity H.264 view     (telepresence — VIEW)
+#   /oak/stereo/image_raw/compressed  disparity H.264 view     (telepresence — 2D preview)
 #
 # LOAD-BEARING: the depth /compressed leg is the lossy 8-bit DISPARITY encoded as
 # grayscale H.264 — a viewable visualization ONLY. Metric depth data always travels
 # as the raw 16UC1 /oak/stereo/image_raw topic; never consume the H.264 as distance.
+#
+# i_subpixel MUST be false: subpixel makes the disparity output 16-bit, which the
+# OAK VideoEncoder rejects ("Arrived frame type (14) is not NV12 or YUV400p (8-bit
+# Gray)") — the encoder needs 8-bit. So the disparity VIEW is 8-bit; the metric
+# DEPTH raw stays 16-bit either way (subpixel only refines its precision). A future
+# "subpixel depth + preview" preset would need an ImageManip 16->8-bit for the
+# encoder tap.
 /**:
   ros__parameters:
     oak.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']
     oak.stereo.image_raw.enable_pub_plugins: ['image_transport/raw']
     camera:
       i_enable_imu: false
-      i_enable_ir: true                      # IR projector aids stereo on OAK-D-PRO
+      i_enable_ir: false                     # OAK-D-LITE has no IR projector (OAK-D-PRO does)
       i_nn_type: none
       i_pipeline_type: 'husarion_depthai::pipeline_gen::RGBDDual'
       i_restart_on_diagnostics_error: true
@@ -34,7 +41,7 @@
     stereo:
       i_enable_lazy_publisher: false
       i_align_depth: true                    # align depth to the RGB (CAM_A) frame
-      i_subpixel: true
+      i_subpixel: false                      # REQUIRED — 8-bit disparity for the encoder (see header)
       i_low_bandwidth_profile: 0
       i_low_bandwidth_bitrate: 4000000       # 4 Mbps disparity-view H.264
       i_low_bandwidth_frame_freq: 30

@@ -11,7 +11,8 @@
 #include "depthai_ros_driver/utils.hpp"
 #include "rclcpp/node.hpp"
 
-// !!! DRAFT — UNVERIFIED on hardware (no stereo OAK present). See depth_dual.hpp.
+// VERIFIED on an OAK-D-LITE (2026-06-22). Requires stereo.i_subpixel=false (8-bit
+// disparity for the encoder) — see depth_dual.hpp.
 
 namespace husarion_depthai {
 namespace dai_nodes {

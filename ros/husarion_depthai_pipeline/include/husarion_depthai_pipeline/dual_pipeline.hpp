@@ -23,8 +23,9 @@ class RGBDual : public depthai_ros_driver::pipeline_gen::BasePipeline {
 };
 
 // RGB + depth dual output (RGBDual node + a depth dual node: depth 16UC1 raw +
-// disparity grayscale-H.264 view). !!! DRAFT — requires an OAK-D-class stereo
-// camera; UNVERIFIED on this OAK-1.
+// disparity grayscale-H.264 view). Requires an OAK-D-class stereo camera; VERIFIED
+// on an OAK-D-LITE. The depth preset MUST set stereo.i_subpixel=false (8-bit
+// disparity for the encoder — see depth_dual.hpp).
 class RGBDDual : public depthai_ros_driver::pipeline_gen::BasePipeline {
    public:
     std::vector<std::unique_ptr<depthai_ros_driver::dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,

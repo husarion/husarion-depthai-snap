@@ -86,18 +86,24 @@ iterate target="jazzy":
 swap-enable:
     #!/bin/bash
     set -euo pipefail
-    sudo fallocate -l 2G /swapfile
+    # 8G: a snapcraft pack of the heavier snaps (rosbot/moveit) OOMs on a 7.6 GB
+    # no-swap box, and the in-docker colcon build of the pipeline plugin OOM-kills
+    # (exit 137) too. 8G covers both. Idempotent: skip if /swapfile is already on.
+    if swapon --show 2>/dev/null | grep -q /swapfile; then
+        echo "/swapfile already active"; swapon --show; exit 0
+    fi
+    sudo fallocate -l 8G /swapfile
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
     sudo swapon /swapfile
     sudo swapon --show
 
-    # Make the swap file permanent:
-    sudo bash -c "echo '/swapfile swap swap defaults 0 0' >> /etc/fstab"
+    # Make the swap file permanent (skip if already in fstab):
+    grep -q "^/swapfile " /etc/fstab || sudo bash -c "echo '/swapfile swap swap defaults 0 0' >> /etc/fstab"
 
     # Adjust swappiness:
     sudo sysctl vm.swappiness=10
-    sudo bash -c "echo 'vm.swappiness=10' >> /etc/sysctl.conf"
+    grep -q "^vm.swappiness=" /etc/sysctl.conf || sudo bash -c "echo 'vm.swappiness=10' >> /etc/sysctl.conf"
 
 swap-disable:
     #!/bin/bash

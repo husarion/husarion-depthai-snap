@@ -37,12 +37,8 @@ class ImagePublisher;
 namespace husarion_depthai {
 namespace dai_nodes {
 
-// !!! DRAFT — UNVERIFIED. No stereo OAK is connected to this robot (the unit is an
-// OAK-1, RGB-only), so this depth path has NOT been run on hardware. It compiles
-// against depthai_ros_driver 2.12.2 and mirrors the stock Stereo node's proven
-// StereoDepth setup; validate end-to-end when an OAK-D-class camera is attached.
-//
-// Depth dual output off one StereoDepth node, simultaneously:
+// VERIFIED on an OAK-D-LITE (2026-06-22). Mirrors the stock Stereo node's
+// StereoDepth setup; depth dual output off one StereoDepth node, simultaneously:
 //   * depth 16UC1 sensor_msgs/Image  on  <topic>/image_raw            (autonomy — METRIC)
 //   * disparity H.264 FFMPEGPacket    on  <topic>/image_raw/compressed (telepresence — VIEW)
 //
@@ -50,6 +46,12 @@ namespace dai_nodes {
 // the metric depth (it corrupts distances). The encoded stream is the 8-bit
 // DISPARITY as grayscale H.264 — a viewable visualization only. Depth DATA always
 // travels as the raw 16UC1 topic. Same dual-publish shape as RGBDual.
+//
+// CONSTRAINT: the preset MUST set stereo.i_subpixel=false. Subpixel makes the
+// disparity output 16-bit, which the OAK VideoEncoder rejects ("Arrived frame type
+// (14) is not NV12 or YUV400p (8-bit Gray)"). The metric depth raw stays 16-bit
+// regardless. A future subpixel-depth + 8-bit-preview combo needs an ImageManip
+// 16->8-bit on the encoder tap.
 class DepthDual : public depthai_ros_driver::dai_nodes::BaseNode {
    public:
     explicit DepthDual(const std::string& daiNodeName,

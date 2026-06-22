@@ -48,8 +48,9 @@ std::vector<std::unique_ptr<depthai_ros_driver::dai_nodes::BaseNode>> RGBDDual::
     std::shared_ptr<dai::Pipeline> pipeline,
     const std::string& /*nnType*/) {
     auto sensor = detectRgbSensor(node, device);
-    RCLCPP_WARN(node->get_logger(),
-                "RGBDDual pipeline (DRAFT/UNVERIFIED): RGB dual + depth dual (16UC1 raw + disparity H.264 view). Requires a stereo OAK.");
+    RCLCPP_INFO(node->get_logger(),
+                "RGBDDual pipeline: RGB dual + depth dual (16UC1 raw + disparity H.264 view). Requires a stereo OAK "
+                "(verified on OAK-D-LITE). NB: disparity must be 8-bit — set stereo.i_subpixel=false.");
     std::vector<std::unique_ptr<depthai_ros_driver::dai_nodes::BaseNode>> daiNodes;
     daiNodes.push_back(std::make_unique<dai_nodes::RGBDual>(
         sensor_helpers::getNodeName(node, sensor_helpers::NodeNameEnum::RGB), node, pipeline, dai::CameraBoardSocket::CAM_A, sensor, /*publish=*/true));
