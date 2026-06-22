@@ -1,0 +1,37 @@
+---
+# Dual-output RGB preset — publishes BOTH representations of the RGB stream from
+# one OAK at once, via the husarion_depthai_pipeline plugin (no host encode, no
+# new snap interface; the OAK's hardware VideoEncoder does the H.264):
+#
+#   /oak/rgb/image_raw             raw sensor_msgs/Image   → autonomy / ROS 2 nodes
+#   /oak/rgb/image_raw/compressed  on-chip H.264 FFMPEGPacket → telepresence (webui)
+#
+# Both taps come off one ColorCamera.video (NV12) output simultaneously. Proven on
+# OAK-1 over USB3 SUPER at 30 fps with the depthai container at ~4% CPU (raw is a
+# host XLinkOut tap; the encode is entirely on-chip). Contrast i_low_bandwidth
+# (encoded only, no raw) and the host-ffmpeg path (raw only, ~57% CPU).
+#
+# Generic-over-streams plugin: when a stereo OAK is connected a sibling depth
+# preset will add depth 16UC1 raw + disparity grayscale-H.264 view the same way.
+/**:
+  ros__parameters:
+    camera:
+      i_enable_imu: false                   # OAK-1: no IMU
+      i_enable_ir: false                    # OAK-1: no IR
+      i_nn_type: none
+      # Custom pipeline plugin (pluginlib). Not one of the stock RGB/RGBD types —
+      # the driver falls through to the class loader for unknown names.
+      i_pipeline_type: 'husarion_depthai::pipeline_gen::RGBDual'
+      i_restart_on_diagnostics_error: true
+    rgb:
+      i_enable_lazy_publisher: false        # raw stays up for autonomy regardless of subs
+      i_fps: 30.0
+      i_max_q_size: 4                        # small queue = low latency for control loops
+      i_resolution: '1080P'                  # IMX378 1080P sensor mode
+      i_isp_num: 2                           # ISP scale 2/3: 1920x1080 → 1280x720
+      i_isp_den: 3
+      # On-chip H.264 encoder config (consumed by the plugin's encoded publisher;
+      # i_low_bandwidth itself is irrelevant here — the plugin always does both):
+      i_low_bandwidth_profile: 0             # H264_BASELINE (low-latency teleop, no B-frames)
+      i_low_bandwidth_bitrate: 4000000       # 4 Mbps @ 720p30
+      i_low_bandwidth_frame_freq: 30         # keyframe cadence = fps → ~1 s GOP

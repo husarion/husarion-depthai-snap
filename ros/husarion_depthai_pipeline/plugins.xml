@@ -1,0 +1,9 @@
+<library path="husarion_depthai_pipeline">
+    <class type="husarion_depthai::pipeline_gen::RGBDual" base_class_type="depthai_ros_driver::pipeline_gen::BasePipeline">
+        <description>
+            RGB dual-output pipeline: publishes raw image_raw (autonomy) AND on-chip
+            H.264 image_raw/compressed (telepresence) from one OAK ColorCamera.video
+            output simultaneously. No host encode, no new snap interface.
+        </description>
+    </class>
+</library>

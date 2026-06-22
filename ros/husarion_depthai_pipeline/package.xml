@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>husarion_depthai_pipeline</name>
+  <version>0.1.0</version>
+  <description>
+    Custom depthai_ros_driver pipeline plugin for Husarion OAK cameras: publishes
+    raw + on-chip-H.264 dual output from one camera (no host encode, no fork, no
+    new snap interface). Loaded via camera.i_pipeline_type.
+  </description>
+  <maintainer email="support@husarion.com">Husarion</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>pluginlib</depend>
+  <depend>depthai</depend>
+  <depend>depthai_ros_driver</depend>
+  <depend>depthai_bridge</depend>
+  <depend>ffmpeg_image_transport_msgs</depend>
+  <depend>image_transport</depend>
+  <depend>camera_info_manager</depend>
+  <depend>sensor_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <depthai_ros_driver plugin="${prefix}/plugins.xml"/>
+  </export>
+</package>
