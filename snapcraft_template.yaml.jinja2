@@ -183,13 +183,14 @@ parts:
   husarion-snap-common:
     plugin: dump
     source: https://github.com/husarion/husarion-snap-common
-    # 0.12.0 adds the snap-agnostic standalone Manage panels (Health/Info) + the
-    # ros.env world-readable perms fix (0.11.0: cyclonedds large-frame buffer +
-    # ros.env regen serialize). 0.10.0 added the files-first husarion-agent
-    # launcher + the content-chain launcher logic + content-*.sh helpers
-    # (SPEC-content-chain). depthai gains the embedded husarion-agent for the
-    # first time here.
-    source-tag: "0.12.0"
+    # 0.13.0 rejects ROS-invalid namespaces (hyphens / leading digit) at the
+    # configure hook. 0.12.0 adds the snap-agnostic standalone Manage panels
+    # (Health/Info) + the ros.env world-readable perms fix (0.11.0: cyclonedds
+    # large-frame buffer + ros.env regen serialize). 0.10.0 added the files-first
+    # husarion-agent launcher + the content-chain launcher logic + content-*.sh
+    # helpers (SPEC-content-chain). depthai gains the embedded husarion-agent for
+    # the first time here.
+    source-tag: "0.13.0"
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
