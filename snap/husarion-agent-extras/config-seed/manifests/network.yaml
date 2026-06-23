@@ -3,7 +3,7 @@ title: ROS networking
 icon: network
 fields:
   - { key: ROS_DOMAIN_ID, scope: shared, type: integer, min: 0, max: 232, default: 0, label: ROS domain ID }
-  - { key: ROS_NAMESPACE, scope: shared, type: string, pattern: '^[0-9a-z_/{}-]{0,64}$', default: rosbot, label: Namespace, help: "Literal, or an identity pattern using {model}/{serial}/{index} — expanded locally on each node." }
+  - { key: ROS_NAMESPACE, scope: shared, type: string, pattern: '^([a-z_{][0-9a-z_/{}]{0,63})?$', default: rosbot, label: Namespace, help: "Literal, or an identity pattern using {model}/{serial}/{index} — expanded locally on each node. Lowercase letter/underscore start; letters, digits and _ only — ROS forbids hyphens." }
   - key: ROS_AUTOMATIC_DISCOVERY_RANGE
     scope: shared
     type: enum
