@@ -1,10 +1,220 @@
-#!/bin/sh
-set -eu
-set_drv() { [ -n "$2" ] && snapctl set "driver.$1=$2" 2>/dev/null || true; }
-set_drv camera-model      "${HUSARION_AGENT_CAMERA_MODEL:-}"
-set_drv camera-params     "${HUSARION_AGENT_CAMERA_PARAMS:-}"
-set_drv name              "${HUSARION_AGENT_NAME:-}"
-set_drv enable-pointcloud "${HUSARION_AGENT_ENABLE_POINTCLOUD:-}"
-set_drv rectify-rgb       "${HUSARION_AGENT_RECTIFY_RGB:-}"
-echo "depthai camera hook: model=${HUSARION_AGENT_CAMERA_MODEL:-?} params=${HUSARION_AGENT_CAMERA_PARAMS:-?}"
-[ -n "${SNAP:-}" ] && [ -x "${SNAP}/meta/hooks/configure" ] && "${SNAP}/meta/hooks/configure" || true
+#!/usr/bin/env python3
+"""Compose+derive hook for the parametric `camera` concern (SPEC-camera-config).
+
+Reads the camera concern fields (HUSARION_AGENT_*), refreshes the capability
+probe, DERIVES the coupled depthai parameters (the i_pipeline_type table +
+cross-constraints), writes a generated `camera-params-<name>.yaml` into
+$SNAP_DATA, and points the driver at it (`snapctl set driver.camera-params`).
+Finally fires the snap configure hook so ros.env regenerates + the daemon
+restarts on the new pipeline.
+
+Single source of the RGB+depth coupling that a flat per-field mapping can't
+express: e.g. raw+H.264 on one stream needs the custom dual-output plugin, and
+disparity-H.264 forces subpixel off (8-bit input for the on-chip encoder).
+"""
+import os
+import subprocess
+import sys
+
+SNAP_DATA = os.environ.get("SNAP_DATA", "/tmp")
+SNAP = os.environ.get("SNAP", "")
+
+
+def env(key, default=""):
+    return os.environ.get(f"HUSARION_AGENT_{key}", default).strip()
+
+
+def b(key, default="false"):
+    return env(key, default).lower() == "true"
+
+
+def snapctl_set(k, v):
+    if v != "":
+        subprocess.run(["snapctl", "set", f"driver.{k}={v}"], check=False)
+
+
+def run_probe():
+    probe = os.path.join(SNAP, "usr", "bin", "camera-probe.py") if SNAP else "camera-probe.py"
+    if os.path.exists(probe):
+        subprocess.run([sys.executable, probe], check=False)
+
+
+def caps_flags():
+    """Read the probe's FRESH capability flags from capabilities.json. The hook's
+    env (HUSARION_AGENT_HAS_*) was captured before run_probe() refreshed the
+    detection, so trust the file the probe just wrote; fall back to env."""
+    import json
+    try:
+        with open(os.path.join(SNAP_DATA, "caps", "capabilities.json")) as f:
+            c = json.load(f)
+        return bool(c.get("stereo")), bool(c.get("ir")), bool(c.get("imu"))
+    except Exception:
+        return b("HAS_STEREO"), b("HAS_IR"), b("HAS_IMU")
+
+
+# --- naming generator (p-shorthand, fps glued; concat of enabled legs) ------
+def res_token(res):
+    return {"4K": "4k", "1080P": "1080p", "720P": "720p", "800P": "800p",
+            "480P": "480p", "400P": "400p"}.get(res, res.lower())
+
+
+def gen_name(s):
+    parts = []
+    rt, rf = res_token(s["rgb_res"]), s["rgb_fps"]
+    if s["rgb_raw"] and s["rgb_h264"]:
+        parts.append(f"rgb-raw-{rt}{rf}-h264-{rt}{rf}")
+    elif s["rgb_h264"]:
+        parts.append(f"rgb-h264-{rt}{rf}")
+    elif s["rgb_raw"]:
+        parts.append(f"rgb-raw-{rt}{rf}")
+    if s["depth"]:
+        dt, df = res_token(s["depth_res"]), s["depth_fps"]
+        legs = []
+        if s["depth_metric"]:
+            legs.append(f"raw-{dt}{df}")
+        if s["depth_disp"]:
+            legs.append(f"disp-h264-{dt}{df}")
+        if legs:
+            parts.append("depth-" + "-".join(legs))
+    if s["imu"]:
+        parts.append("imu-on")
+    if s["ir"]:
+        parts.append("ir-on")
+    return "-".join(parts) or "rgb-h264-1080p30"
+
+
+# --- compose: concern fields -> depthai camera-params YAML ------------------
+def compose():
+    has_stereo, has_ir, has_imu = caps_flags()  # fresh from the probe
+    s = dict(
+        rgb_res=env("RGB_RESOLUTION", "1080P"),
+        rgb_fps=env("RGB_FPS", "30"),
+        rgb_raw=b("RGB_RAW"),
+        rgb_h264=b("RGB_H264", "true"),
+        rgb_bitrate=env("RGB_H264_BITRATE", "4000000"),
+        depth=b("DEPTH_ENABLE") and has_stereo,
+        depth_metric=b("DEPTH_METRIC_RAW", "true"),
+        depth_disp=b("DEPTH_DISPARITY_H264"),
+        depth_res=env("DEPTH_RESOLUTION", "400P"),
+        depth_fps=env("DEPTH_FPS", "30"),
+        depth_align=b("DEPTH_ALIGN", "true"),
+        imu=b("IMU_ENABLE") and has_imu,
+        ir=b("IR_ENABLE") and has_ir,
+        ir_flood=env("IR_FLOOD_BRIGHTNESS", "1500"),
+        pcl=b("POINTCLOUD_ENABLE"),
+        name=env("NAME", "oak"),
+        mxid=env("MXID"),
+        ip=env("IP"),
+    )
+    if s["depth"] and not (s["depth_metric"] or s["depth_disp"]):
+        s["depth_metric"] = True
+    if not (s["rgb_raw"] or s["rgb_h264"]):
+        s["rgb_h264"] = True
+
+    rgb_dual = s["rgb_raw"] and s["rgb_h264"]
+    depth_dual = s["depth"] and s["depth_metric"] and s["depth_disp"]
+
+    # --- derive i_pipeline_type (the SPEC table) ---
+    if s["depth"]:
+        ptype = ("husarion_depthai::pipeline_gen::RGBDDual"
+                 if (rgb_dual or depth_dual) else "RGBD")
+    else:
+        ptype = "husarion_depthai::pipeline_gen::RGBDual" if rgb_dual else "RGB"
+
+    lines = ["/**:", "  ros__parameters:"]
+    if "Dual" in ptype:
+        lines.append(f"    {s['name']}.rgb.image_raw.enable_pub_plugins: ['image_transport/raw']")
+        if depth_dual:
+            lines.append(f"    {s['name']}.stereo.image_raw.enable_pub_plugins: ['image_transport/raw']")
+
+    lines += [
+        "    camera:",
+        f"      i_pipeline_type: '{ptype}'",
+        f"      i_enable_imu: {'true' if s['imu'] else 'false'}",
+        f"      i_enable_ir: {'true' if s['ir'] else 'false'}",
+        "      i_nn_type: none",
+        "      i_restart_on_diagnostics_error: true",
+    ]
+    if s["ir"]:
+        lines.append(f"      i_floodlight_brightness: {s['ir_flood']}")
+    if s["mxid"]:
+        lines.append(f"      i_mx_id: '{s['mxid']}'")
+    if s["ip"]:
+        lines.append(f"      i_ip: '{s['ip']}'")
+
+    rgb_h264_only = s["rgb_h264"] and not s["rgb_raw"]
+    lines += [
+        "    rgb:",
+        "      i_enable_lazy_publisher: false",
+        f"      i_fps: {float(s['rgb_fps'])}",
+    ]
+    if s["rgb_res"] == "720P":  # ISP downscale of 1080P on the color sensor
+        lines += ["      i_resolution: '1080P'", "      i_isp_num: 2", "      i_isp_den: 3"]
+    else:
+        lines.append(f"      i_resolution: '{s['rgb_res']}'")
+    if s["rgb_h264"]:
+        if rgb_h264_only:
+            lines.append("      i_low_bandwidth: true")
+        lines += [
+            "      i_low_bandwidth_profile: 0",
+            f"      i_low_bandwidth_bitrate: {s['rgb_bitrate']}",
+            f"      i_low_bandwidth_frame_freq: {int(float(s['rgb_fps']))}",
+        ]
+    else:
+        lines.append("      i_low_bandwidth: false")
+
+    if s["depth"]:
+        subpixel = "false" if s["depth_disp"] else "true"
+        lines += [
+            "    stereo:",
+            f"      i_align_depth: {'true' if s['depth_align'] else 'false'}",
+            "      i_lr_check: true",
+            f"      i_subpixel: {subpixel}",
+            f"      i_fps: {float(s['depth_fps'])}",
+        ]
+        if s["depth_disp"] and not depth_dual:
+            lines += [
+                "      i_low_bandwidth: true",
+                "      i_low_bandwidth_profile: 0",
+                "      i_low_bandwidth_bitrate: 4000000",
+                f"      i_low_bandwidth_frame_freq: {int(float(s['depth_fps']))}",
+                "      i_output_disparity: true",
+            ]
+        elif depth_dual:
+            lines += [
+                "      i_low_bandwidth_profile: 0",
+                "      i_low_bandwidth_bitrate: 4000000",
+                f"      i_low_bandwidth_frame_freq: {int(float(s['depth_fps']))}",
+            ]
+
+    return s, gen_name(s), "\n".join(lines) + "\n", s["pcl"] and s["depth"]
+
+
+def main():
+    run_probe()  # refresh caps + HAS_* flags before composing
+    s, name, yaml_text, pcl = compose()
+
+    out = os.path.join(SNAP_DATA, f"camera-params-{name}.yaml")
+    try:
+        with open(out, "w") as f:
+            f.write(yaml_text)
+    except OSError as e:
+        print(f"camera hook: cannot write {out}: {e}", file=sys.stderr)
+        return 1
+
+    snapctl_set("camera-params", name)
+    snapctl_set("name", s["name"])
+    snapctl_set("camera-model", env("CAMERA_MODEL"))
+    snapctl_set("enable-pointcloud", "true" if pcl else "false")
+    snapctl_set("rectify-rgb", "true" if s["rgb_raw"] else "false")
+
+    print(f"camera hook: pipeline='{name}' -> {out}")
+
+    cfg = os.path.join(SNAP, "meta", "hooks", "configure") if SNAP else ""
+    if cfg and os.access(cfg, os.X_OK):
+        subprocess.run([cfg], check=False)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

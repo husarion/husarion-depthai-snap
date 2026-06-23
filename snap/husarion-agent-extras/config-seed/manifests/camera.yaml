@@ -1,9 +1,70 @@
 concern: camera
-title: Camera driver
+title: Camera
 icon: camera
+# Parametric, capability-aware camera config (SPEC-camera-config). Fields are
+# grouped into Manage cards via `group`; dynamic enums read the probe's option
+# files under $SNAP_DATA/caps/<field>/; `visible_when` gates depth/ir/imu/
+# pointcloud on the probe-detected HAS_* flags (written to camera/local.env).
+# The `camera` hook composes these into the depthai camera-params YAML.
 fields:
-  - { key: CAMERA_MODEL, scope: shared, type: enum, options: [OAK-D, OAK-D-LITE, OAK-1, OAK-1-LITE, OAK-D-PRO, OAK-D-PRO-W], default: OAK-D-PRO, label: Camera model, help: "OAK-x model — snap-side validation only; the driver autodetects the hardware." }
-  - { key: CAMERA_PARAMS, scope: shared, type: enum, dynamic: { path: "${SNAP_DATA}", glob: "camera-params-*.yaml" }, default: default, label: Pipeline preset, help: "Camera pipeline. Options are the snap's camera-params-<X>.yaml presets (drop your own to add one). default = raw RGB (host re-encodes). rgb-h264-720p30 = OAK chip's hardware H.264 on <name>/rgb/image_raw/compressed (no raw, no rectify/point-cloud — those are forced off). oak-d-pro* = depth/SLAM." }
-  - { key: NAME, scope: shared, type: string, pattern: '^[0-9a-z_-]{0,20}$', default: oak, label: Node name, help: "ROS node name + topic prefix (/<ns>/<name>/rgb/...)." }
-  - { key: ENABLE_POINTCLOUD, scope: shared, type: enum, options: ["false","true"], default: "false", label: Point cloud, help: "Load the RGB-D point-cloud node. Requires an RGBD pipeline (e.g. Pipeline preset = oak-d-pro). Ignored (forced off) when Pipeline preset = rgb-h264-720p30." }
-  - { key: RECTIFY_RGB, scope: shared, type: enum, options: ["true","false"], default: "true", label: Rectify RGB, help: "Publish <name>/rgb/image_rect alongside the raw stream. Ignored (forced off) when Pipeline preset = rgb-h264-720p30 (the chip H.264 path has no raw input to rectify)." }
+  # --- detection -----------------------------------------------------------
+  - { key: CAMERA_MODEL, scope: shared, type: enum, group: detection, default: OAK-D-PRO,
+      dynamic: { path: "${SNAP_DATA}/caps/model", glob: "*.opt" },
+      label: Camera model, help: "Auto-detected when a camera is connected; pick manually to configure offline." }
+  - { key: NAME, scope: shared, type: string, group: detection, pattern: '^[0-9a-z_-]{0,20}$', default: oak,
+      label: Node name, help: "ROS node name + topic prefix (/<ns>/<name>/rgb/...)." }
+  - { key: MXID, scope: local, type: enum, group: detection, default: "",
+      dynamic: { path: "${SNAP_DATA}/caps/mxid", glob: "*.opt" },
+      label: Device (mxid), help: "Target a specific OAK when several are connected. Empty = first/any." }
+  - { key: IP, scope: local, type: string, group: detection, default: "", pattern: '^([0-9.]{0,15})$',
+      label: PoE IP, help: "Set for an OAK-*-PoE (e.g. 10.15.20.6); leave empty for USB." }
+  - { key: HAS_STEREO, scope: local, type: enum, group: detection, options: ["true","false"], default: "false",
+      label: Stereo (detected), help: "Auto-detected: this camera has a stereo pair (depth available)." }
+  - { key: HAS_IR, scope: local, type: enum, group: detection, options: ["true","false"], default: "false",
+      label: IR projector (detected), help: "Auto-detected: this camera has an IR dot projector / flood LED." }
+  - { key: HAS_IMU, scope: local, type: enum, group: detection, options: ["true","false"], default: "false",
+      label: IMU (detected), help: "Auto-detected: this camera has an IMU." }
+
+  # --- RGB -----------------------------------------------------------------
+  - { key: RGB_RESOLUTION, scope: shared, type: enum, group: rgb, default: "1080P",
+      dynamic: { path: "${SNAP_DATA}/caps/rgb_resolution", glob: "*.opt" },
+      label: RGB resolution }
+  - { key: RGB_FPS, scope: shared, type: enum, group: rgb, default: "30",
+      dynamic: { path: "${SNAP_DATA}/caps/rgb_fps", glob: "*.opt" },
+      label: RGB framerate }
+  - { key: RGB_RAW, scope: shared, type: enum, group: rgb, options: ["true","false"], default: "false",
+      label: Publish raw RGB, help: "Uncompressed bgr8 for autonomy. Raw + H.264 together uses the on-chip dual-output plugin." }
+  - { key: RGB_H264, scope: shared, type: enum, group: rgb, options: ["true","false"], default: "true",
+      label: Publish on-chip H.264, help: "Hardware-encoded H.264 for telepresence (near-zero host CPU)." }
+  - { key: RGB_H264_BITRATE, scope: shared, type: integer, group: rgb, min: 500000, max: 20000000, default: 4000000,
+      label: H.264 bitrate (bps), visible_when: { RGB_H264: "true" } }
+
+  # --- Depth (stereo models only) -----------------------------------------
+  - { key: DEPTH_ENABLE, scope: shared, type: enum, group: depth, options: ["true","false"], default: "false",
+      visible_when: { HAS_STEREO: "true" }, label: Enable depth }
+  - { key: DEPTH_METRIC_RAW, scope: shared, type: enum, group: depth, options: ["true","false"], default: "true",
+      visible_when: { DEPTH_ENABLE: "true" }, label: Metric depth (16UC1), help: "Raw metric depth for autonomy/pointcloud." }
+  - { key: DEPTH_DISPARITY_H264, scope: shared, type: enum, group: depth, options: ["true","false"], default: "false",
+      visible_when: { DEPTH_ENABLE: "true" }, label: Disparity H.264 preview, help: "On-chip grayscale H.264 of the disparity — a 2D depth preview (forces subpixel off)." }
+  - { key: DEPTH_RESOLUTION, scope: shared, type: enum, group: depth, default: "400P",
+      dynamic: { path: "${SNAP_DATA}/caps/depth_resolution", glob: "*.opt" },
+      visible_when: { DEPTH_ENABLE: "true" }, label: Depth resolution }
+  - { key: DEPTH_FPS, scope: shared, type: enum, group: depth, default: "30",
+      dynamic: { path: "${SNAP_DATA}/caps/depth_fps", glob: "*.opt" },
+      visible_when: { DEPTH_ENABLE: "true" }, label: Depth framerate }
+  - { key: DEPTH_ALIGN, scope: shared, type: enum, group: depth, options: ["true","false"], default: "true",
+      visible_when: { DEPTH_ENABLE: "true" }, label: Align depth to RGB }
+
+  # --- IMU (models with an IMU) -------------------------------------------
+  - { key: IMU_ENABLE, scope: shared, type: enum, group: imu, options: ["true","false"], default: "false",
+      visible_when: { HAS_IMU: "true" }, label: Enable IMU }
+
+  # --- IR (Pro / PoE) ------------------------------------------------------
+  - { key: IR_ENABLE, scope: shared, type: enum, group: ir, options: ["true","false"], default: "false",
+      visible_when: { HAS_IR: "true" }, label: Enable IR illumination }
+  - { key: IR_FLOOD_BRIGHTNESS, scope: shared, type: integer, group: ir, min: 0, max: 1500, default: 1500,
+      visible_when: { IR_ENABLE: "true" }, label: IR flood brightness }
+
+  # --- Point cloud (stereo models) ----------------------------------------
+  - { key: POINTCLOUD_ENABLE, scope: shared, type: enum, group: pointcloud, options: ["true","false"], default: "false",
+      visible_when: { DEPTH_ENABLE: "true" }, label: Publish point cloud, help: "RGB-D point cloud (needs depth + metric raw)." }
