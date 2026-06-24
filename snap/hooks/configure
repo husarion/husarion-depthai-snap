@@ -51,6 +51,52 @@ for param in camera-params ffmpeg-params; do
     fi
 done
 
+# Populate the files-first `camera` concern's capability flags so Manage renders
+# the right per-capability cards — the depth/imu/ir cards are gated (visible_when)
+# on HAS_STEREO/HAS_IMU/HAS_IR. These mirror camera-probe.py's static matrix by
+# camera class; the probe (run by the concern's apply hook, which has python via
+# the ROS env — snap hooks have none) refines them and fills the resolution/fps
+# dynamic-enum options on first apply. Guard on the agent having seeded its
+# config-root: the install-time configure runs BEFORE the agent's first start,
+# and creating config/ early would make the launcher's IF-ABSENT seed skip
+# network/rmw. The deploy's `snap set driver.camera-model` re-fires this with
+# config/ present. Writes files only (no snapctl set) so it can't disturb the
+# pipeline chosen via driver.camera-params.
+if [ -d "${SNAP_COMMON}/husarion-agent/config" ]; then
+    cam_model="$(snapctl get driver.camera-model)"; : "${cam_model:=OAK-D-PRO}"
+    case "$cam_model" in
+        OAK-1|OAK-1-LITE)      has_stereo=false; has_ir=false; has_imu=false ;;
+        OAK-D|OAK-D-LITE)      has_stereo=true;  has_ir=false; has_imu=true  ;;
+        OAK-D-PRO|OAK-D-PRO-W) has_stereo=true;  has_ir=true;  has_imu=true  ;;
+        *)                     has_stereo=true;  has_ir=false; has_imu=true  ;;
+    esac
+    cam_dir="${SNAP_COMMON}/husarion-agent/config/camera"
+    mkdir -p "$cam_dir"
+    cam_env="${cam_dir}/local.env"
+    # Preserve any other local-scope keys (e.g. MXID/IP); rewrite only ours.
+    keep="$(grep -vE '^(HAS_STEREO|HAS_IR|HAS_IMU|DETECTED_MODEL)=' "$cam_env" 2>/dev/null || true)"
+    {
+        [ -n "$keep" ] && printf '%s\n' "$keep"
+        printf 'HAS_STEREO=%s\nHAS_IR=%s\nHAS_IMU=%s\nDETECTED_MODEL=%s\n' \
+            "$has_stereo" "$has_ir" "$has_imu" "$cam_model"
+    } > "$cam_env"
+    # Mirror the probe's per-model res/fps option lists into $SNAP_DATA/caps so
+    # the rgb/depth resolution + fps dynamic-enum dropdowns are populated. The
+    # python probe refines these (incl. live mxid detection) on the concern's
+    # first apply.
+    write_caps() { d="${SNAP_DATA}/caps/$1"; rm -rf "$d"; mkdir -p "$d"; shift; for v in "$@"; do : > "${d}/${v}.opt"; done; }
+    write_caps model OAK-1 OAK-1-LITE OAK-D OAK-D-LITE OAK-D-PRO OAK-D-PRO-W
+    case "$cam_model" in OAK-1-LITE|OAK-D-LITE) rgb_fps_opts="30" ;; *) rgb_fps_opts="30 60" ;; esac
+    write_caps rgb_resolution 720P 1080P 4K
+    write_caps rgb_fps $rgb_fps_opts
+    if [ "$has_stereo" = true ]; then
+        case "$cam_model" in OAK-D-LITE) depth_res_opts="400P 480P" ;; *) depth_res_opts="400P 720P 800P" ;; esac
+        write_caps depth_resolution $depth_res_opts
+        write_caps depth_fps 30 60
+    fi
+    log "camera concern caps: model=$cam_model stereo=$has_stereo imu=$has_imu ir=$has_ir"
+fi
+
 # depthai_ros driver is a plain rclcpp node — RMW-agnostic, including zenoh.
 # The husarion-snap-common zenoh gate exists for snaps that pair zenoh with a
 # non-zenoh bridge (e.g. micro_ros_agent); depthai has no such bridge, so opt in.
