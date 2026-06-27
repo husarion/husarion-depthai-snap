@@ -207,7 +207,7 @@ ROS_DISTRO=jazzy   ──► ./render_template.py snapcraft_template.yaml.jinja2
                               ├── execstack -c libamdhip64.so* (part of fix-execstack)
                               └── version = `apt-cache policy ros-{distro}-depthai-ros-driver | Candidate`
                        │
-                       └─► husarion-depthai_<version>_<arch>.snap (~580 MB)
+                       └─► husarion-depthai_<version>_<arch>.snap (~543 MB)
 ```
 
 ### B. Install / refresh on the host
@@ -434,7 +434,7 @@ ______________________________________________________________________
 
 8. **No unit/integration tests** — the only validation is "snap install --dangerous" in CI. Runtime regressions (e.g. a change in `launcher.sh`) are caught only by manual launch on the target platform.
 
-9. **Snap size ~580 MB** — large surface, long `snap download`/`refresh`. Most of it is ROS 2 base + depthai-ros + ffmpeg. Optimizing via `stage-snaps` instead of `stage-packages` would be possible but unverified.
+9. **Snap size ~543 MB** — large surface, long `snap download`/`refresh`. Most of it is ROS 2 base + depthai-ros + ffmpeg. Optimizing via `stage-snaps` instead of `stage-packages` would be possible but unverified.
 
 ______________________________________________________________________
 
