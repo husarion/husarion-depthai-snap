@@ -72,11 +72,11 @@ ______________________________________________________________________
 | ROS 2                | `humble` or `jazzy` (matrix)                                                                                                               |
 | Camera SDK           | `depthai-core` + `depthai_ros_driver` (apt: `ros-{distro}-depthai-ros`)                                                                    |
 | Image transport      | `image_transport`, `image_transport_plugins`, `ffmpeg_image_transport` (libx264)                                                           |
-| RMW                  | FastDDS (default from extension) + Cyclone DDS (`rmw-cyclonedds-cpp`); selected at runtime                                                 |
-| DDS XML              | FastDDS profiles (UDP, SHM) + CycloneDDS XML (UDP localhost). Files in `husarion-snap-common@0.11.0`.                                      |
-| CI                   | GitHub Actions (`snapcore/action-build`, `snapcore/action-publish`)                                                                        |
+| RMW                  | FastDDS (default from extension) + Cyclone DDS (`rmw-cyclonedds-cpp`) + Zenoh (`rmw-zenoh-cpp`); selected at runtime                        |
+| DDS XML              | FastDDS profiles (UDP, SHM) + CycloneDDS XML (UDP localhost) + Zenoh json5. Files in `husarion-snap-common@0.13.0`.                        |
+| CI                   | GitHub Actions (`snapcore/action-build`, `snapcore/action-publish`) + `pre-commit` (mdformat) in `ci.yaml`                                 |
 | Build orchestration  | `just` (justfile)                                                                                                                          |
-| External shared      | [`husarion/husarion-snap-common@0.11.0`](https://github.com/husarion/husarion-snap-common) — common ROS configuration / hooks / validators |
+| External shared      | [`husarion/husarion-snap-common@0.13.0`](https://github.com/husarion/husarion-snap-common) — common ROS configuration / hooks / validators |
 
 ______________________________________________________________________
 
@@ -97,6 +97,7 @@ husarion-depthai-snap/
 │       ├── launcher.sh              # entry point for both apps
 │       ├── depthai.launch.py        # ROS 2 launch (ComposableNodeContainer)
 │       ├── apply_defaults.sh        # idempotent driver.* defaults; called by install + post-refresh
+│       ├── camera-probe.py          # depthai capability probe (SPEC-camera-config; run by the camera concern apply hook)
 │       ├── image_view_launcher.sh   # helper for previewing RGB via ffmpeg image transport
 │       ├── post_install.sh          # snap connect raw-usb/hardware-observe/shm + restart daemon
 │       ├── camera-params-default.yaml          # RGB preset (host re-encode)
@@ -116,6 +117,7 @@ husarion-depthai-snap/
 ├── CLAUDE.md                        # AI guidelines (THIS kind of file)
 ├── ARCHITECTURE.md                  # this file
 ├── .github/workflows/
+│   ├── ci.yaml                      # PR + push main — pre-commit (mdformat) lint gate
 │   ├── build.yaml                   # PR + workflow_dispatch — builds matrix (humble, jazzy) on ubuntu-latest
 │   └── publish.yaml                 # push main / tag — matrix (humble, jazzy) × (amd64, arm64) → release to Snap Store
 ├── demo/                            # AD-HOC (test-only; may be removed)
@@ -133,9 +135,9 @@ husarion-depthai-snap/
 | `snap/local/*.sh`                                              | `$SNAP/usr/bin/`                                                                                                                    | part `local-files` (plugin: dump)                                                                                                                       |
 | `snap/local/*.py`                                              | `$SNAP/usr/bin/`                                                                                                                    | same as above                                                                                                                                           |
 | `snap/local/*.yaml`                                            | `$SNAP/usr/share/husarion-depthai/config/` (read-only template) → `$SNAP_DATA/` (writable runtime via install + post-refresh hooks) | same as above + hooks                                                                                                                                   |
-| `husarion-snap-common@0.11.0/local-ros/*.sh`                   | `$SNAP/usr/bin/`                                                                                                                    | part `husarion-snap-common` (plugin: dump from git)                                                                                                     |
-| `husarion-snap-common@0.11.0/local-ros/*.xml`                  | `$SNAP/usr/share/husarion-snap-common/config/`                                                                                      | same as above                                                                                                                                           |
-| `husarion-snap-common@0.11.0/local-ros/ros.env`                | `$SNAP/usr/share/husarion-snap-common/config/`                                                                                      | same as above                                                                                                                                           |
+| `husarion-snap-common@0.13.0/local-ros/*.sh`                   | `$SNAP/usr/bin/`                                                                                                                    | part `husarion-snap-common` (plugin: dump from git)                                                                                                     |
+| `husarion-snap-common@0.13.0/local-ros/*.xml`                  | `$SNAP/usr/share/husarion-snap-common/config/`                                                                                      | same as above                                                                                                                                           |
+| `husarion-snap-common@0.13.0/local-ros/ros.env`                | `$SNAP/usr/share/husarion-snap-common/config/`                                                                                      | same as above                                                                                                                                           |
 | `yq` from GitHub releases (v4.35.1)                            | `$SNAP/usr/bin/yq`                                                                                                                  | override-build + override-prime                                                                                                                         |
 | apt: `ros-{distro}-depthai-ros` (+ image_transport, ffmpeg, …) | `$SNAP/opt/ros/{distro}/...`                                                                                                        | stage-packages in part `husarion-depthai`                                                                                                               |
 | `ros/husarion_depthai_pipeline/`                               | `$SNAP/opt/ros/{distro}/lib/libhusarion_depthai_pipeline.so` (+ plugins.xml, ament index)                                           | part `husarion-depthai-pipeline` (plugin: colcon) — built against the staged driver; pluginlib autoloads it when a preset sets `camera.i_pipeline_type` |
@@ -156,7 +158,8 @@ husarion-depthai (snap)
 │   │                                       # bundled: default, oak-1-lite, oak-d-pro, oak-d-pro-poe
 │   ├── ffmpeg-params     = default       # name of ffmpeg-params-<NAME>.yaml in $SNAP_DATA
 │   ├── startup-delay     = 30            # seconds 0-120 (allow-unset); workaround for USB cold-start race after reboot
-│   └── enable-pointcloud = false         # bool; load PointCloudXyzrgbNode + force RGB/stereo sync
+│   ├── enable-pointcloud = false         # bool; load PointCloudXyzrgbNode + force RGB/stereo sync
+│   └── rectify-rgb       = true          # bool; load image_proc::RectifyNode (forced off for raw-less presets)
 │
 └── ros.*                                 # shared; handled by configure_hook_ros.sh from snap-common
     ├── domain-id         = 0             # 0..232
@@ -198,7 +201,7 @@ ROS_DISTRO=jazzy   ──► ./render_template.py snapcraft_template.yaml.jinja2
                        └─► snapcraft (with SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1)
                               ├── apt-get stage-packages (depthai-ros, image_transport, ffmpeg, cv-bridge,
                               │   ffmpeg-image-transport, rmw-cyclonedds-cpp, libpulse-dev, libblas3, libjpeg-turbo8-dev)
-                              ├── git clone husarion-snap-common@0.11.0 → dump
+                              ├── git clone husarion-snap-common@0.13.0 → dump
                               ├── snap/local/ → dump
                               ├── curl yq → bin
                               ├── execstack -c libamdhip64.so* (part of fix-execstack)
@@ -259,7 +262,8 @@ ros_setup.sh:
         │
         ▼ command
 launcher.sh:
-  collect driver.{name,enable-pointcloud}
+  collect driver.{name,enable-pointcloud,rectify-rgb}
+  (forces rectify-rgb + enable-pointcloud off for raw-less presets: rgb-h264-*, depth-disp-h264)
   → LAUNCH_OPTIONS (kebab → snake)
   + namespace:= ros.namespace (if set)
   + params_file := $SNAP_DATA/camera-params-${driver.camera-params}.yaml
@@ -270,7 +274,6 @@ launcher.sh:
     if STARTUP_DELAY > 0 and UPTIME < STARTUP_DELAY + 60: sleep ${STARTUP_DELAY}
     # else: no delay — daemon is starting "second-hand" (snap restart, refresh, crash recovery)
 
-  ros2 daemon stop && sleep 1
   ros2 launch $SNAP/usr/bin/depthai.launch.py ${LAUNCH_OPTIONS}
         │
         ▼
@@ -299,7 +302,7 @@ ______________________________________________________________________
 
 | Integration            | Method                                                                    | Pinned version                                                             |
 | ---------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `husarion-snap-common` | git clone in `parts.husarion-snap-common.source`                          | branch/tag `0.11.0`                                                        |
+| `husarion-snap-common` | git clone in `parts.husarion-snap-common.source`                          | branch/tag `0.13.0`                                                        |
 | `depthai-ros`          | apt (`ros-{distro}-depthai-ros`) from the ROS 2 distro repo               | dynamic (`apt-cache policy …\| Candidate`)                                 |
 | `yq`                   | curl from GitHub releases                                                 | `v4.35.1`                                                                  |
 | ROS 2 base             | snapcraft extension `ros2-{distro}-ros-base`                              | distro = humble \| jazzy                                                   |
@@ -334,11 +337,11 @@ ______________________________________________________________________
 
 **Earlier implementation** (up to `ecf72d9`, 2025-11-27): a flag file in `$SNAP_DATA/.startup-delay-done` + `exit 0` + `restart-condition: always` — the first iteration slept, the second (after a systemd restart) ran `ros2 launch`. It worked for the golden path, but: (a) risk of an infinite `sleep → launch fail → restart → sleep → …` loop, (b) the flag was deleted in iter 2, so every snap restart also paid the delay, (c) hard-to-follow logic with three coupled components.
 
-**Current solution** ([snap/local/launcher.sh:48-58](snap/local/launcher.sh#L48)) is a clean branch on `int(/proc/uptime)`. Deterministic, requires only `/proc` (available under strict confinement without any plug). `restart-condition: always` stays on the daemon as general post-crash resilience, independent of the workaround.
+**Current solution** ([snap/local/launcher.sh:63-71](snap/local/launcher.sh#L63)) is a clean branch on `int(/proc/uptime)`. Deterministic, requires only `/proc` (available under strict confinement without any plug). `restart-condition: always` stays on the daemon as general post-crash resilience, independent of the workaround.
 
 **Status**: heuristic workaround. To be re-validated on every `ros-{distro}-depthai-ros` bump (procedure in [CLAUDE.md → "Before bumping apt dependencies"](CLAUDE.md)).
 
-**Unclear**: `ros2 daemon stop && sleep 1` before `ros2 launch` ([snap/local/launcher.sh:67-68](snap/local/launcher.sh#L67)) comes from commit 8f874b ("test"). Possibly debug, but it's on main. Not removing — separate decision at the next verification opportunity.
+**Resolved**: the earlier `ros2 daemon stop && sleep 1` before `ros2 launch` (from commit 8f874b "test") has since been removed — `launcher.sh` now calls `ros2 launch` directly after the optional startup-delay sleep.
 
 ### D5. Two apps (`daemon` + foreground `husarion-depthai`)
 
@@ -415,7 +418,7 @@ ______________________________________________________________________
 
 ## 9. Known limitations / technical debt
 
-1. **"startup-delay" workaround** — heuristic, not a root-cause fix. The uptime-based mechanism is simple and deterministic, but assumes that `int(/proc/uptime) < STARTUP_DELAY + 60s` is a good proxy for "fresh boot". `ros2 daemon stop && sleep 1` from commit 8f874b "test" (on `main`) is also pending verification. Sanity-check procedure on a depthai-ros bump: [CLAUDE.md → "Before bumping apt dependencies"](CLAUDE.md).
+1. **"startup-delay" workaround** — heuristic, not a root-cause fix. The uptime-based mechanism is simple and deterministic, but assumes that `int(/proc/uptime) < STARTUP_DELAY + 60s` is a good proxy for "fresh boot". Sanity-check procedure on a depthai-ros bump: [CLAUDE.md → "Before bumping apt dependencies"](CLAUDE.md).
 
 2. ~~`${SNAP_COMMON}` is not synced on refresh~~ — **resolved**: yaml presets live in `${SNAP_DATA}` and are refreshed by the `post-refresh` hook. User customs survive (snapd copies `$SNAP_DATA` per revision). Legacy customs from `$SNAP_COMMON` are migrated once.
 

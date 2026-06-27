@@ -34,7 +34,7 @@ sudo husarion-depthai.start
 
 The depthai_ros_driver pipeline YAMLs are snap-shipped to **`/var/snap/husarion-depthai/current/`** (read-only, reset on refresh; the durable source is this repo at `snap/local/`). `driver.camera-params=<preset>` selects one:
 
-- `camera-params-<preset>.yaml` — RGB/stereo pipeline: resolution, fps, on-chip encoder, IMU/IR/NN, low-bandwidth. Presets shipped: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, the `rgb-h264-*` family, and the **`rgb-raw-*` family + `rgbd-rgb-h264-720p-depth-raw-disp-h264`** (custom-plugin dual output — see below).
+- `camera-params-<preset>.yaml` — RGB/stereo pipeline: resolution, fps, on-chip encoder, IMU/IR/NN, low-bandwidth. Presets shipped: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, the `rgb-h264-*` family, `depth-disp-h264` (chip H.264 of the disparity view), and the **`rgb-raw-*` family + `rgbd-rgb-h264-720p-depth-raw-disp-h264`** (custom-plugin dual output — see below).
 - `ffmpeg-params-default.yaml` — HOST-side `image_transport` encoder for the `.../image_raw/ffmpeg` topic (libx264, software, on the host CPU).
 
 Encoder paths for the RGB feed — **three archetypes** (matters for streaming fps / CPU):

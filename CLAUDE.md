@@ -20,7 +20,7 @@ snapcraft_template.yaml.jinja2  ──► render_template.py ──► snap/snap
    (just build / CI: ROS_DISTRO=humble|jazzy)
 
 snap/local/*               ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-depthai/config
-husarion-snap-common@0.11.0 ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-snap-common/config
+husarion-snap-common@0.13.0 ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-snap-common/config
 
 apps:
   daemon (systemd, restart-condition: always)  command-chain: ros_setup.sh
@@ -34,7 +34,7 @@ Detailed diagram → [ARCHITECTURE.md](ARCHITECTURE.md).
 
 1. **Never edit `snap/snapcraft.yaml` by hand.** It's a regenerated artifact from [snapcraft_template.yaml.jinja2](snapcraft_template.yaml.jinja2). It's `.gitignore`'d. Direct edits get overwritten on the next `just build`.
 2. **Every Jinja change → re-render.** After editing `snapcraft_template.yaml.jinja2` run `just build` (or `./render_template.py snapcraft_template.yaml.jinja2 snap/snapcraft.yaml` with `ROS_DISTRO` set) before building anything.
-3. **`husarion-snap-common` is pinned to tag `0.11.0`.** Provides validators, the `ros.env` generator, DDS XML, the `start/stop/restart_launcher.sh` wrappers. Editing its scripts requires changes in the external repo plus an optional pin bump — do not patch locally.
+3. **`husarion-snap-common` is pinned to tag `0.13.0`.** Provides validators, the `ros.env` generator, DDS XML, the `start/stop/restart_launcher.sh` wrappers. Editing its scripts requires changes in the external repo plus an optional pin bump — do not patch locally.
 4. **Default `driver.*` values live in 4 places.** Keep them in sync:
    - [snap/local/apply_defaults.sh](snap/local/apply_defaults.sh) — `set_default_if_unset driver.X <default>` (called by install AND post-refresh hooks; idempotent so refreshes don't clobber user values)
    - [snap/hooks/configure](snap/hooks/configure) — `VALID_DRIVER_KEYS` + validators
@@ -43,7 +43,7 @@ Detailed diagram → [ARCHITECTURE.md](ARCHITECTURE.md).
    - optionally the description in `description:` in the Jinja template (markdown shown in Snap Store)
 5. **YAML files in `snap/local/` land in `${SNAP_DATA}`** (= `/var/snap/husarion-depthai/current/`). The install hook copies them on first install; the `post-refresh` hook overwrites **only the bundled presets** on every `snap refresh` — user-added YAMLs survive (snapd performs `$SNAP_DATA` data migration per revision). Legacy customs from `${SNAP_COMMON}` are one-shot migrated by post-refresh.
 6. **`restart-condition: always` on the daemon is not cosmetic.** The startup-delay workaround (see Pitfalls) used to rely on `exit 0` after the first sleep so systemd would restart the daemon — only the second iteration actually started ROS. After the move to the uptime check, the workaround no longer needs it, but the property remains as a general crash-recovery safeguard.
-7. **`grade: stable` is always set** ([snapcraft_template.yaml.jinja2:114](snapcraft_template.yaml.jinja2#L114)) regardless of channel. The version is taken from `apt-cache policy ros-{distro}-depthai-ros-driver` (Candidate).
+7. **`grade: stable` is always set** ([snapcraft_template.yaml.jinja2:45](snapcraft_template.yaml.jinja2#L45)) regardless of channel. The version is taken from `apt-cache policy ros-{distro}-depthai-ros-driver` (Candidate).
 8. **Touching anything user-facing? Test on the target platform (RPi5/ARM64).** Some bugs (e.g. `fix-execstack` on `libamdhip64.so*`) only manifest on a specific architecture.
 
 ## Conventions
@@ -51,7 +51,7 @@ Detailed diagram → [ARCHITECTURE.md](ARCHITECTURE.md).
 ### Naming
 
 - **Snap parameters** in two namespaces: `driver.*` (DepthAI-specific) and `ros.*` (transport / domain id / namespace). Boundary: `driver.*` is handled by `snap/hooks/configure`, `ros.*` by `configure_hook_ros.sh` from snap-common.
-- **Snap keys** in kebab-case (`driver.enable-pointcloud`, `driver.startup-delay`). The launcher converts them to snake_case for `ros2 launch` arguments ([launcher.sh:26](snap/local/launcher.sh#L26)).
+- **Snap keys** in kebab-case (`driver.enable-pointcloud`, `driver.startup-delay`). The launcher converts them to snake_case for `ros2 launch` arguments ([launcher.sh:36](snap/local/launcher.sh#L36)).
 - **Preset files**: `camera-params-<NAME>.yaml` and `ffmpeg-params-<NAME>.yaml` in `${SNAP_DATA}`. The inline check in the configure hook assumes that exact format — don't change it.
 - **ROS topics**: `/<namespace>/<name>/rgb/image_raw[/ffmpeg]`, `/<ns>/<name>/stereo/image_raw`, `/<ns>/<name>/points`. `<name>` is `driver.name` (default `oak`).
 
@@ -121,7 +121,7 @@ In practice CI does this ([.github/workflows/publish.yaml](.github/workflows/pub
 ### Build on a weaker machine (LXD OOM)
 
 ```bash
-just swap-enable    # 2 GB swap + lower swappiness
+just swap-enable    # 8 GB swap + lower swappiness
 just swap-disable   # rollback
 just remove-lxd-cache   # free space from snapcraft LXD containers
 ```
@@ -132,7 +132,7 @@ just remove-lxd-cache   # free space from snapcraft LXD containers
 
 - Default `30` (seconds). Range `0..120`. Set to `''` or `0` to disable.
 - Empirically: 30s is enough for most x86 hosts and RPi5; some slow-booting systems may need 45-60s. If after reboot you see depthai `X_LINK_ERROR` ~20s after "Camera ready", USB stack hasn't stabilized — bump higher.
-- Mechanics ([snap/local/launcher.sh:48-58](snap/local/launcher.sh#L48)):
+- Mechanics ([snap/local/launcher.sh:63-71](snap/local/launcher.sh#L63)):
   - Reads `/proc/uptime` (available under strict confinement without any plug).
   - If uptime < `STARTUP_DELAY + 60s` → treat as "fresh boot" → `sleep ${STARTUP_DELAY}`.
   - Otherwise → no sleep.
@@ -144,7 +144,7 @@ just remove-lxd-cache   # free space from snapcraft LXD containers
 ### Two apps sharing the same `launcher.sh`
 
 - `daemon` (systemd) and `husarion-depthai` (foreground) both invoke the same `launcher.sh`.
-- `husarion-depthai` additionally has [check_daemon_running.sh](https://github.com/husarion/husarion-snap-common/blob/0.11.0/local-ros/check_daemon_running.sh) in its command-chain — it detects a live daemon and tells the user to stop it first.
+- `husarion-depthai` additionally has [check_daemon_running.sh](https://github.com/husarion/husarion-snap-common/blob/0.13.0/local-ros/check_daemon_running.sh) in its command-chain — it detects a live daemon and tells the user to stop it first.
 - The foreground does not respect `restart-condition` or the flag-file logic (because daemon and foreground may have separate `$SNAP_DATA`? — to be confirmed, but the code uses `$SNAP_DATA`, which is per-snap, not per-app).
 
 ### `enable-pointcloud` requires the RGBD pipeline + sync
@@ -164,15 +164,16 @@ just remove-lxd-cache   # free space from snapcraft LXD containers
   - `post_install.sh` — user-facing helper (copied by the install hook).
 - **When to put data where**: `${SNAP_DATA}` when the schema/format may change between snap versions (yaml presets — schema is tied to the depthai-ros version). `${SNAP_COMMON}` when the data is version-independent and should survive refresh untouched (DDS XML, user-managed env).
 
-### The snap installs both `rmw_cyclonedds_cpp` and `rmw_fastrtps_cpp`
+### The snap installs `rmw_fastrtps_cpp`, `rmw_cyclonedds_cpp`, and `rmw_zenoh_cpp`
 
 - The `ros2-{distro}-ros-base` extension pulls FastDDS as the default RMW.
-- We explicitly add `ros-{distro}-rmw-cyclonedds-cpp` to stage-packages — so `ros.transport=rmw_cyclonedds_cpp`/`udp-lo-cyclone` works.
+- We explicitly add `ros-{distro}-rmw-fastrtps-cpp`, `ros-{distro}-rmw-cyclonedds-cpp`, and `ros-{distro}-rmw-zenoh-cpp` to stage-packages — so `ros.transport=rmw_cyclonedds_cpp`/`udp-lo-cyclone` works, and zenoh works through the agent chain.
+- depthai is a plain rclcpp node (no bridge), so the configure hook sets `HSC_ALLOW_ZENOH=1` to opt out of snap-common's zenoh gate.
 - The RMW choice happens at runtime via `RMW_IMPLEMENTATION` (exported in `${SNAP_COMMON}/ros.env` by the configure hook).
 
 ### `fix-execstack` for `libamdhip64.so*`
 
-- The `fix-execstack` part ([snapcraft_template.yaml.jinja2:148](snapcraft_template.yaml.jinja2#L148)) clears execstack on `libamdhip64.so*` (pulled in as a transitive dependency; blocks startup under strict confinement).
+- The `fix-execstack` part ([snapcraft_template.yaml.jinja2:249](snapcraft_template.yaml.jinja2#L249)) clears execstack on `libamdhip64.so*` (pulled in as a transitive dependency; blocks startup under strict confinement).
 - If you add a new library with execstack ON — add it to the `choosen_files` list.
 - `execstack` is unavailable on `core24` hosts in some configurations — then the build needs `swap-enable` or a beefier machine.
 
@@ -242,7 +243,8 @@ Available presets (1280x720 @ 30 fps, low-latency queue=4):
 - `camera-params-oak-d-pro.yaml` — RGBD + IMU + IR projector + flood, USB; stereo with subpixel + lr_check + align_depth.
 - `camera-params-oak-d-pro-poe.yaml` — same as above + `i_ip: 10.15.20.6` (PoE; MJPEG quality 50 to fit Ethernet bandwidth; if your IP differs — copy on the host into a new preset).
 - `camera-params-oak-d-pro-slam.yaml` — oak-d-pro tuned for SLAM/VIO: manual exposure (no jumps to break feature trackers) + lower ISO. Tune `r_exposure`/`r_iso` per environment (defaults aimed at indoor lit office).
-- `camera-params-rgb-h264-720p30.yaml` — **chip-side H.264 encoder only** (`i_low_bandwidth=true`, profile 0 = H264_BASELINE, ~2.5 Mbps, ~1 s GOP). ~98% daemon CPU win vs libx264 but drops raw `/image_raw`, rect, depth, and PCL — streaming-only use. fps/res variants: `rgb-h264-{360p30,360p60,720p60,1080p60,4k30}`. The launcher force-disables rectify/PCL for the `rgb-h264-*` family. See "Pitfalls → Why default doesn't use the OAK chip's hardware H.264 encoder".
+- `camera-params-rgb-h264-720p30.yaml` — **chip-side H.264 encoder only** (`i_low_bandwidth=true`, profile 0 = H264_BASELINE, ~2.5 Mbps, ~1 s GOP). ~98% daemon CPU win vs libx264 but drops raw `/image_raw`, rect, depth, and PCL — streaming-only use. fps/res variants: `rgb-h264-{360p30,360p60,720p60,1080p60,4k30}`. The launcher force-disables rectify/PCL for both raw-less families (`rgb-h264-*` and `depth-disp-h264`). See "Pitfalls → Why default doesn't use the OAK chip's hardware H.264 encoder".
+- `camera-params-depth-disp-h264.yaml` — **chip-side H.264 of the 8-bit disparity only** (`i_pipeline_type=RGBD`, `stereo.i_low_bandwidth=true`, `i_subpixel=false`): a lossy 2D depth *view* on `/stereo/image_raw/compressed`, RGB lazy. Needs a stereo OAK. For external depth consumers — the cockpit has no depth viewer.
 - `camera-params-rgb-raw-720p-h264-720p.yaml` (+ `-1080p-h264-1080p`, `-360p-h264-360p`, asymmetric `-1080p-h264-720p`, `-360p-h264-720p`) — **dual output: raw `/image_raw` AND on-chip H.264 `/image_raw/compressed` at once**, via the custom `husarion_depthai_pipeline` pluginlib plugin in `ros/` (selected by `camera.i_pipeline_type`, NOT a fork). Filename = format: `rgb-raw-<res>` is the raw leg, `h264-<res>` the encoder leg (independent sizing via on-chip ImageManip). Each suppresses the raw stream's image_transport republishers so `/compressed` carries only the on-chip FFMPEGPacket.
 - `camera-params-rgbd-rgb-h264-720p-depth-raw-disp-h264.yaml` — RGB dual + **depth dual** (`RGBDDual`): depth 16UC1 raw + disparity grayscale-H.264 *view* on `/stereo/image_raw{,/compressed}`. Needs a stereo OAK (verified OAK-D-LITE). `stereo.i_subpixel` is forced false in the node (8-bit disparity for the encoder).
 
@@ -279,4 +281,3 @@ Available presets (1280x720 @ 30 fps, low-latency queue=4):
 - **Don't change the naming format of `camera-params-<NAME>.yaml` / `ffmpeg-params-<NAME>.yaml` (and `rmw/<impl>/<NAME>.xml`)** — all regexes in `validate_config_param` assume it.
 - **Don't commit `husarion-depthai*.snap`** or `squashfs-root/` (they're in `.gitignore` but can grow to ~600 MB on disk — remember `just clean` / `just remove`).
 - **Don't push directly to `main`** — use PRs (CI publishes on push to main, so casual commits go straight to `<distro>/edge` in the Snap Store).
-- **Don't remove `ros2 daemon stop && sleep 1`** from `launcher.sh` without verification — introduced in commit 8f874b ("test"), but it's on main; intent unconfirmed.
