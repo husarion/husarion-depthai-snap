@@ -8,6 +8,15 @@ Snap for OAK-x cameras customized for Husarion robots.
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/husarion-depthai)
 
+## Install
+
+```bash
+sudo snap install husarion-depthai
+sudo /var/snap/husarion-depthai/common/post_install.sh   # connects raw-usb, hardware-observe, shm + restarts the daemon
+```
+
+`post_install.sh` connects the interfaces snapd does not auto-connect on sideloaded (`--dangerous` / `snap try`) installs; on a Snap Store install it is a no-op safety net.
+
 ## Apps
 
 | app                        | description                                          |
