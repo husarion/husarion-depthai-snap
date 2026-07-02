@@ -235,6 +235,8 @@ parts:
       cp $CRAFT_PART_BUILD/yq $CRAFT_PRIME/usr/bin/yq
       chmod +x $CRAFT_PRIME/usr/bin/yq
       rm -rf $CRAFT_PRIME/local-ros $CRAFT_PRIME/husarion-agent
+    stage:
+      - "-usr/bin/start_launcher.sh"
 
   # Chained-agents binary + per-snap files-first config seed. The binary fetch +
   # files-first launcher ship from husarion-snap-common; only the config-seed
