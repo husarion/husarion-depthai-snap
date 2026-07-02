@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - ros_distro: humble
           - ros_distro: jazzy
 
     steps:

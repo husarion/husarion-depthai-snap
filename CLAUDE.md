@@ -17,7 +17,7 @@ A snap (Snap Store: [`husarion-depthai`](https://snapcraft.io/husarion-depthai))
 snapcraft_template.yaml.jinja2  ──► render_template.py ──► snap/snapcraft.yaml (ARTIFACT, gitignored)
         ▲ single source of truth
         │
-   (just build / CI: ROS_DISTRO=humble|jazzy)
+   (just build: ROS_DISTRO=humble|jazzy / CI: jazzy only)
 
 snap/local/*               ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-depthai/config
 husarion-snap-common@0.13.0 ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-snap-common/config

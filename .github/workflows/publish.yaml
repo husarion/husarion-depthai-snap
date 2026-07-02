@@ -15,12 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - ros_distro: humble
-            runner: ubuntu-latest
           - ros_distro: jazzy
             runner: ubuntu-latest
-          - ros_distro: humble
-            runner: ubuntu-24.04-arm64
           - ros_distro: jazzy
             runner: ubuntu-24.04-arm64
 
