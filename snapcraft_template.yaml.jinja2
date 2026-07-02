@@ -1,4 +1,5 @@
 name: husarion-depthai
+title: Husarion DepthAI
 adopt-info: husarion-depthai
 license: Apache-2.0
 summary: OAK-x cameras driver for Husarion robots
@@ -36,7 +37,7 @@ description: |
 
   * name: `oak` - ROS 2 node name; also the prefix in published topic paths (`/<ns>/<name>/rgb/...`).
   * camera-model: `OAK-D-PRO` - one of `OAK-D`, `OAK-D-LITE`, `OAK-1`, `OAK-1-LITE`, `OAK-D-PRO`, `OAK-D-PRO-W`. Used for snap-side validation; the depthai driver autodetects the actual hardware.
-  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets: `default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`, and the OAK chip hardware-H.264 streaming family: `rgb-h264-720p30` (720p30), `rgb-h264-360p30` + `rgb-h264-360p60` (ultra-low bandwidth), `rgb-h264-720p60`, `rgb-h264-1080p60`, `rgb-h264-4k30` (resolution/fps verified on an IMX378 OAK; the on-chip encoder caps at 4K30 = 248 Mpix/s; sub-1080p resolutions use ISP downscale); and the dual-output family `rgb-raw-*` (720p), `rgb-raw-1080p-h264-1080p`, `rgb-raw-360p-h264-360p`, `rgb-raw-1080p-h264-720p`, `rgb-raw-360p-h264-720p` (raw + on-chip H.264 from one camera at once, via the bundled husarion_depthai_pipeline plugin) plus `rgbd-rgb-h264-720p-depth-raw-disp-h264` (draft, needs a stereo OAK). Bundled presets are refreshed on every `snap refresh`; user-added `camera-params-*.yaml` in this directory are preserved and appear automatically in the cockpit Manage dropdown.
+  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets cover plain RGB/RGBD pipelines (`default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`), the OAK on-chip H.264 streaming family (`rgb-h264-*`), and the dual raw + on-chip H.264 family (`rgb-raw-*-h264-*`, `rgbd-*`) — see the project README for the full preset table. Bundled presets are refreshed on every `snap refresh`; user-added `camera-params-*.yaml` files are preserved and appear automatically in the cockpit Manage dropdown.
   * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-depthai/current/ffmpeg-params-<VALUE>.yaml`
   * startup-delay: `30` - Seconds to sleep on first launch after a fresh boot (uptime < startup-delay+60s). Set to `0` or `''` to disable. Workaround for depthai-ros USB cold-start race; tune higher (60+) for slow-booting hosts, lower (10-15) for fast x86.
   * enable-pointcloud: `false` - Load `depth_image_proc::PointCloudXyzrgbNode` and force RGB/stereo timestamp sync. Requires RGBD pipeline (e.g. `camera-params=oak-d-pro`).
@@ -64,6 +65,7 @@ environment:
 
 contact: https://github.com/husarion/depthai-snap/issues
 issues: https://github.com/husarion/depthai-snap/issues
+source-code: https://github.com/husarion/husarion-depthai-snap
 website: https://husarion.com/
 
 slots:
