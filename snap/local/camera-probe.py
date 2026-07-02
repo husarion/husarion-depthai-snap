@@ -63,7 +63,7 @@ def declared_model():
         return m
     try:
         import subprocess
-        v = subprocess.run(["snapctl", "get", "driver.camera-model"],
+        v = subprocess.run(["snapctl", "get", "driver.model"],
                            capture_output=True, text=True).stdout.strip()
         if v:
             return v

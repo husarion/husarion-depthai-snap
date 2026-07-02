@@ -8,10 +8,20 @@
 # Define a function to log and echo messages
 source "$SNAP/usr/bin/utils.sh"
 
+# Legacy key migration (driver.camera-model -> driver.model). Runs before
+# validate_keys, so an old `snap set … driver.camera-model=…` still lands: it
+# is folded into driver.model here instead of failing validation.
+OLD_CAMERA_MODEL="$(snapctl get driver.camera-model)"
+if [ -n "$OLD_CAMERA_MODEL" ]; then
+  snapctl set driver.model="$OLD_CAMERA_MODEL"
+  snapctl set driver.camera-model!
+  log_and_echo "Warning: 'driver.camera-model' is deprecated — value '${OLD_CAMERA_MODEL}' migrated to 'driver.model'. Use 'snap set ${SNAP_NAME} driver.model=…' from now on."
+fi
+
 # # Define the top-level key and the list of valid keys
 VALID_DRIVER_KEYS=(
   "name"
-  "camera-model"
+  "model"
   "camera-params"
   "ffmpeg-params"
   "startup-delay"
@@ -26,9 +36,10 @@ validate_keys "driver" VALID_DRIVER_KEYS[@]
 # validate driver.name
 validate_regex "driver.name" '^[a-z_-]{1,10}$'
 
-# validate driver.camera-model
+# validate driver.model — unset on fresh installs; the launcher refuses to
+# start until the operator picks one (rosbot's driver.model pattern)
 VALID_CAMERA_MODEL_OPTIONS=("OAK-D" "OAK-D-LITE" "OAK-1" "OAK-1-LITE" "OAK-D-PRO" "OAK-D-PRO-W")
-validate_option "driver.camera-model" VALID_CAMERA_MODEL_OPTIONS[@]
+validate_option --allow-unset "driver.model" VALID_CAMERA_MODEL_OPTIONS[@]
 
 SUPPORTED_RANGE=(0 120)
 validate_number --allow-unset "driver.startup-delay" SUPPORTED_RANGE[@]
@@ -59,11 +70,11 @@ done
 # dynamic-enum options on first apply. Guard on the agent having seeded its
 # config-root: the install-time configure runs BEFORE the agent's first start,
 # and creating config/ early would make the launcher's IF-ABSENT seed skip
-# network/rmw. The deploy's `snap set driver.camera-model` re-fires this with
+# network/rmw. The deploy's `snap set driver.model` re-fires this with
 # config/ present. Writes files only (no snapctl set) so it can't disturb the
 # pipeline chosen via driver.camera-params.
 if [ -d "${SNAP_COMMON}/husarion-agent/config" ]; then
-    cam_model="$(snapctl get driver.camera-model)"; : "${cam_model:=OAK-D-PRO}"
+    cam_model="$(snapctl get driver.model)"; : "${cam_model:=OAK-D-PRO}"
     case "$cam_model" in
         OAK-1|OAK-1-LITE)      has_stereo=false; has_ir=false; has_imu=false ;;
         OAK-D|OAK-D-LITE)      has_stereo=true;  has_ir=false; has_imu=true  ;;

@@ -11,8 +11,9 @@ source "$SNAP/usr/bin/utils.sh"
 
 if ! snapctl is-connected raw-usb; then
   log "Plug 'raw-usb' isn't connected, please run:"
-  log "sudo snap connect ${SNAP_NAME}:raw-usb"
+  log "sudo ${SNAP_COMMON}/post_install.sh"
 fi
+log "Set the camera model before starting: sudo snap set ${SNAP_NAME} driver.model=<OAK-1|OAK-1-LITE|OAK-D|OAK-D-LITE|OAK-D-PRO|OAK-D-PRO-W>; pick the pipeline with driver.camera-params=<preset>"
 
 # Bundled YAML presets live in $SNAP_DATA (per-revision) so they're refreshed
 # on every snap upgrade — see snap/hooks/post-refresh. User custom presets in

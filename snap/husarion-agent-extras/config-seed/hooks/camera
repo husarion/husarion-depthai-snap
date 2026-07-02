@@ -204,7 +204,7 @@ def main():
 
     snapctl_set("camera-params", name)
     snapctl_set("name", s["name"])
-    snapctl_set("camera-model", env("CAMERA_MODEL"))
+    snapctl_set("model", env("CAMERA_MODEL"))
     snapctl_set("enable-pointcloud", "true" if pcl else "false")
     snapctl_set("rectify-rgb", "true" if s["rgb_raw"] else "false")
 

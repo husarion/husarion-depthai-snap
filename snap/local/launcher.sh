@@ -2,6 +2,28 @@
 
 source "$SNAP/usr/bin/utils.sh"
 
+# Model gate first (rosbot's driver.model pattern). The value itself is
+# validation/cockpit metadata — the driver autodetects the physical device —
+# but the operator must declare it before the driver starts.
+CAMERA_MODEL="$(snapctl get driver.model)"
+if [ -z "$CAMERA_MODEL" ]; then
+  log_and_echo "Error: camera model is not set. Pick your model first:"
+  log_and_echo "    \033[1msudo snap set ${SNAP_NAME} driver.model=<OAK-1|OAK-1-LITE|OAK-D|OAK-D-LITE|OAK-D-PRO|OAK-D-PRO-W>\033[0m"
+  exit 1
+fi
+
+# post_install gate. Unlike rosbot there is no marker file: post_install.sh
+# only connects plugs (no udev/apparmor steps), so is-connected IS the real
+# signal — and store installs auto-connect these plugs, so fleets that never
+# ran the script keep starting after a refresh.
+for plug in raw-usb hardware-observe; do
+  if ! snapctl is-connected "$plug"; then
+    log_and_echo "Error: snap plug '$plug' is not connected. Please run:"
+    log_and_echo "    \033[1msudo ${SNAP_COMMON}/post_install.sh\033[0m"
+    exit 1
+  fi
+done
+
 # Iterate over the snap parameters and retrieve their value.
 # If a value is set, it is forwarded to the launch file.
 
@@ -14,6 +36,7 @@ OPTIONS=(
 LAUNCH_OPTIONS=()
 
 CAMERA_PARAMS="$(snapctl get driver.camera-params)"
+log_and_echo "Starting OAK camera (model: ${CAMERA_MODEL}, camera-params: ${CAMERA_PARAMS}) — pipeline: sudo snap set ${SNAP_NAME} driver.camera-params=<preset>"
 
 # Chip-encoded H.264 presets that publish NO raw RGB (i_low_bandwidth=true) leave
 # the rectify + point-cloud nodes with no input. Force both off regardless of snap

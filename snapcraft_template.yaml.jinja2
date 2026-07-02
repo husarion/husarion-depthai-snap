@@ -11,9 +11,11 @@ description: |
 
      sudo snap install husarion-depthai
 
-  After installation, connect the required interfaces (`raw-usb`, `hardware-observe`, shared memory) and restart the driver:
+  After installation, connect the required interfaces (`raw-usb`, `hardware-observe`, shared memory), set the camera model and start the driver:
 
      sudo /var/snap/husarion-depthai/common/post_install.sh
+     sudo snap set husarion-depthai driver.model=OAK-D-PRO
+     sudo husarion-depthai.start
 
   **Tip**
 
@@ -36,7 +38,7 @@ description: |
   The `driver` contains the following keys:
 
   * name: `oak` - ROS 2 node name; also the prefix in published topic paths (`/<ns>/<name>/rgb/...`).
-  * camera-model: `OAK-D-PRO` - one of `OAK-D`, `OAK-D-LITE`, `OAK-1`, `OAK-1-LITE`, `OAK-D-PRO`, `OAK-D-PRO-W`. Used for snap-side validation; the depthai driver autodetects the actual hardware.
+  * model: `(unset)` - one of `OAK-D`, `OAK-D-LITE`, `OAK-1`, `OAK-1-LITE`, `OAK-D-PRO`, `OAK-D-PRO-W`. **Required before the driver starts**; used for snap-side validation and cockpit capability cards — the depthai driver autodetects the actual hardware.
   * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets cover plain RGB/RGBD pipelines (`default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`), the OAK on-chip H.264 streaming family (`rgb-h264-*`), and the dual raw + on-chip H.264 family (`rgb-raw-*-h264-*`, `rgbd-*`) — see the project README for the full preset table. Bundled presets are refreshed on every `snap refresh`; user-added `camera-params-*.yaml` files are preserved and appear automatically in the cockpit Manage dropdown.
   * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-depthai/current/ffmpeg-params-<VALUE>.yaml`
   * startup-delay: `30` - Seconds to sleep on first launch after a fresh boot — workaround for the depthai-ros USB cold-start race. `0`/`''` disables; raise (60+) on slow-booting hosts.
@@ -95,7 +97,7 @@ apps:
     command: usr/bin/launcher.sh
     command-chain: [usr/bin/ros_setup.sh]
     daemon: simple
-    install-mode: enable
+    install-mode: disable   # disabled until driver.model is set; enabled by `husarion-depthai.start`
     restart-condition: always
     plugs: [network, network-bind, shm-plug, raw-usb, hardware-observe]
     slots: [shm-slot]

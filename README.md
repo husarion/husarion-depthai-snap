@@ -12,10 +12,12 @@ Snap for OAK-x cameras customized for Husarion robots.
 
 ```bash
 sudo snap install husarion-depthai
-sudo /var/snap/husarion-depthai/common/post_install.sh   # connects raw-usb, hardware-observe, shm + restarts the daemon
+sudo /var/snap/husarion-depthai/common/post_install.sh   # connects raw-usb, hardware-observe, shm
+sudo snap set husarion-depthai driver.model=OAK-D-PRO    # required — the daemon refuses to start unset
+sudo husarion-depthai.start
 ```
 
-`post_install.sh` connects the interfaces snapd does not auto-connect on sideloaded (`--dangerous` / `snap try`) installs; on a Snap Store install it is a no-op safety net.
+`post_install.sh` connects the interfaces snapd does not auto-connect on sideloaded (`--dangerous` / `snap try`) installs; on a Snap Store install it is a no-op safety net. `driver.model` is validation/cockpit metadata (the driver autodetects the device), but it must be declared before the driver starts.
 
 ## Apps
 
@@ -32,7 +34,7 @@ Two parameter namespaces — `driver.*` (DepthAI) and `ros.*` (DDS / namespace /
 
 ```bash
 # DepthAI
-sudo snap set husarion-depthai driver.camera-model=OAK-D-PRO
+sudo snap set husarion-depthai driver.model=OAK-D-PRO
 sudo snap set husarion-depthai driver.camera-params=oak-d-pro
 sudo snap set husarion-depthai driver.ffmpeg-params=default
 sudo snap set husarion-depthai driver.enable-pointcloud=true   # PointCloudXyzrgbNode (RGBD presets only)

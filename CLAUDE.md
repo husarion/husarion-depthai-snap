@@ -6,7 +6,7 @@
 
 A snap (Snap Store: [`husarion-depthai`](https://snapcraft.io/husarion-depthai)) packaging the **Luxonis OAK-x** camera driver (DepthAI) as a ROS 2 node plus a Husarion-style configuration layer (DDS, namespace, parameters via `snap set`).
 
-- **Target users**: operators of Husarion robots (ROSbot, Panther, …) — the snap should work out of the box once the USB camera is plugged in and `sudo snap install` is run.
+- **Target users**: operators of Husarion robots (ROSbot, Panther, …) — after `sudo snap install`, setup is 3 commands: `post_install.sh` + `snap set driver.model=<model>` + `.start` (the daemon ships install-mode: disable and requires driver.model).
 - **ROS distros**: `humble` (`core22`) + `jazzy` (`core24`). The snap manifest is shared — generated from a single Jinja template per ROS distro.
 - **Architectures**: `amd64` + `arm64` (mainly Raspberry Pi 5 on the robots).
 - **Confinement**: `strict`. Required plugs: `raw-usb`, `hardware-observe`, `network`, `network-bind`, `shared-memory`.
@@ -93,7 +93,7 @@ just clean
 
 ```bash
 sudo snap set husarion-depthai ros.namespace=robot
-sudo snap set husarion-depthai driver.camera-model=OAK-D-PRO
+sudo snap set husarion-depthai driver.model=OAK-D-PRO
 sudo snap set husarion-depthai driver.camera-params=oak-d-pro       # USB; preset from /var/snap/husarion-depthai/current/
 sudo snap set husarion-depthai driver.camera-params=oak-d-pro-poe   # PoE
 sudo snap set husarion-depthai driver.camera-params=oak-1-lite      # OAK-1-LITE (RGB only)

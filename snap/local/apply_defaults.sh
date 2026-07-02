@@ -18,8 +18,10 @@ set_default_if_unset() {
     fi
 }
 
+# driver.model deliberately has NO default — the launcher refuses to start
+# until the operator picks one (existing installs get their old
+# driver.camera-model value migrated by the configure hook).
 set_default_if_unset driver.name oak
-set_default_if_unset driver.camera-model OAK-D-PRO
 set_default_if_unset driver.camera-params default
 set_default_if_unset driver.ffmpeg-params default
 set_default_if_unset driver.startup-delay 30

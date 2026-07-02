@@ -152,7 +152,7 @@ ______________________________________________________________________
 husarion-depthai (snap)
 ├── driver.*                              # DepthAI-specific; handled by snap/hooks/configure
 │   ├── name              = oak           # node name; regex ^[a-z_-]{1,10}$
-│   ├── camera-model      = OAK-D-PRO     # OAK-D | OAK-D-LITE | OAK-1 | OAK-1-LITE | OAK-D-PRO | OAK-D-PRO-W
+│   ├── model             = (unset)       # REQUIRED before start: OAK-D | OAK-D-LITE | OAK-1 | OAK-1-LITE | OAK-D-PRO | OAK-D-PRO-W
 │   │                                       # snap-side validation only; depthai driver autodetects hardware
 │   ├── camera-params     = default       # name of camera-params-<NAME>.yaml in $SNAP_DATA
 │   │                                       # bundled: default, oak-1-lite, oak-d-pro, oak-d-pro-poe
@@ -385,7 +385,7 @@ ______________________________________________________________________
 | Sync overrides (`pipeline_gen.i_enable_sync`, `rgb.i_synced`, `stereo.i_synced`) | ✅ injected when PCL on |
 | `tf_params` from `publish_tf_from_calibration` + `override_cam_model` | ❌ removed as dead (Husarion uses own robot URDF; would conflict) |
 | `target_container` namespace-aware | ✅ (with leading `/`) |
-| Default `camera_model="OAK-D-PRO"` | ✅ aligned (also in `snap/hooks/install`) |
+| Default `camera_model` | driver.model has NO default — required at start (legacy driver.camera-model is migrated) |
 | Default `rectify_rgb="true"` | ✅ aligned |
 | `Node(rviz2)` + `use_rviz` | ❌ not needed (we have `image_view_launcher.sh`) |
 | `IncludeLaunchDescription(urdf_launch.py)` | ❌ deliberately omitted |

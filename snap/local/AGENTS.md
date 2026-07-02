@@ -10,7 +10,7 @@ ROS 2 driver for Luxonis OAK-x depth cameras on Husarion robots. Publishes RGB (
 
 ```bash
 sudo /var/snap/husarion-depthai/common/post_install.sh       # one-time setup
-sudo snap set husarion-depthai driver.camera-model=<model>   # e.g. OAK-D-PRO
+sudo snap set husarion-depthai driver.model=<model>   # e.g. OAK-D-PRO
 sudo husarion-depthai.start
 ```
 
@@ -19,7 +19,7 @@ sudo husarion-depthai.start
 1. **Husarion cockpit (recommended in a cockpit install).** The ROS network (RMW, `ROS_DOMAIN_ID`, namespace) is set on the chain **owner** — the `rosbot` snap or the cockpit host — from the WebUI **Manage** tab, and propagates here automatically. Do **not** hand-set `ros.*` here in a cockpit install. The operator camera/streaming UI ingests this snap's image topic.
 2. **Direct / standalone:** `sudo snap set husarion-depthai <key>=<value>`:
    - `driver.name` — node name + topic prefix.
-   - `driver.camera-model` — e.g. `OAK-D`, `OAK-D-PRO`, `OAK-1` (hardware is auto-detected; this is for validation).
+   - `driver.model` — REQUIRED before start; e.g. `OAK-D`, `OAK-D-PRO`, `OAK-1` (hardware is auto-detected; this is validation/cockpit metadata).
    - `driver.camera-params` — preset; **`default` has NO depth**, use e.g. `oak-d-pro` for an RGBD pipeline.
    - `driver.enable-pointcloud`, `driver.rectify-rgb`, `driver.startup-delay`.
    - `ros.namespace`, `ros.domain-id`, `ros.transport`.
