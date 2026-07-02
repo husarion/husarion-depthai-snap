@@ -86,12 +86,12 @@ if [ -d "${SNAP_COMMON}/husarion-agent/config" ]; then
     # first apply.
     write_caps() { d="${SNAP_DATA}/caps/$1"; rm -rf "$d"; mkdir -p "$d"; shift; for v in "$@"; do : > "${d}/${v}.opt"; done; }
     write_caps model OAK-1 OAK-1-LITE OAK-D OAK-D-LITE OAK-D-PRO OAK-D-PRO-W
-    case "$cam_model" in OAK-1-LITE|OAK-D-LITE) rgb_fps_opts="30" ;; *) rgb_fps_opts="30 60" ;; esac
+    case "$cam_model" in OAK-1-LITE|OAK-D-LITE) rgb_fps_opts=(30) ;; *) rgb_fps_opts=(30 60) ;; esac
     write_caps rgb_resolution 720P 1080P 4K
-    write_caps rgb_fps $rgb_fps_opts
+    write_caps rgb_fps "${rgb_fps_opts[@]}"
     if [ "$has_stereo" = true ]; then
-        case "$cam_model" in OAK-D-LITE) depth_res_opts="400P 480P" ;; *) depth_res_opts="400P 720P 800P" ;; esac
-        write_caps depth_resolution $depth_res_opts
+        case "$cam_model" in OAK-D-LITE) depth_res_opts=(400P 480P) ;; *) depth_res_opts=(400P 720P 800P) ;; esac
+        write_caps depth_resolution "${depth_res_opts[@]}"
         write_caps depth_fps 30 60
     fi
     log "camera concern caps: model=$cam_model stereo=$has_stereo imu=$has_imu ir=$has_ir"
