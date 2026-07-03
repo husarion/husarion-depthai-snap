@@ -87,7 +87,7 @@ just clean
 
 - Produces `husarion-depthai_<version>_<arch>.snap` (~543 MB) in the project directory.
 - `just install` unpacks it (`unsquashfs`) and runs `sudo snap try squashfs-root/`.
-- After install: `sudo /var/snap/husarion-depthai/common/post_install.sh` connects plugs (raw-usb, hardware-observe, shm-plug↔shm-slot) and restarts the daemon.
+- After install: `sudo /var/snap/husarion-depthai/common/post_install.sh` connects plugs (raw-usb, hardware-observe, shm-plug↔shm-slot); then `snap set husarion-depthai driver.model=…` + `husarion-depthai.start`.
 
 ### Operations on the running snap (on the target host)
 

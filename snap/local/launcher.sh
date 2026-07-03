@@ -24,6 +24,26 @@ for plug in raw-usb hardware-observe; do
   fi
 done
 
+# Shared memory needs shm-plug↔shm-slot, which the store never auto-connects.
+# Hard-fail on explicit shm tokens; for any other transport warn only — a
+# custom RMW profile may still use SHM internally (and builtin FastDDS tries
+# SHM by default), but hard-failing would take down refreshed fleets that
+# never ran post_install.sh.
+if ! snapctl is-connected shm-plug; then
+  ROS_TRANSPORT="$(snapctl get ros.transport)"
+  case "$ROS_TRANSPORT" in
+  *shm*)
+    log_and_echo "Error: ros.transport='${ROS_TRANSPORT}' needs the shared-memory connection. Please run:"
+    log_and_echo "    \033[1msudo ${SNAP_COMMON}/post_install.sh\033[0m"
+    exit 1
+    ;;
+  *)
+    log_and_echo "Warning: shm-plug is not connected — if your RMW profile uses shared memory, it will fail. Please run:"
+    log_and_echo "    \033[1msudo ${SNAP_COMMON}/post_install.sh\033[0m"
+    ;;
+  esac
+fi
+
 # Iterate over the snap parameters and retrieve their value.
 # If a value is set, it is forwarded to the launch file.
 
@@ -36,7 +56,7 @@ OPTIONS=(
 LAUNCH_OPTIONS=()
 
 CAMERA_PARAMS="$(snapctl get driver.camera-params)"
-log_and_echo "Starting OAK camera (model: ${CAMERA_MODEL}, camera-params: ${CAMERA_PARAMS}) — pipeline: sudo snap set ${SNAP_NAME} driver.camera-params=<preset>"
+log_and_echo "Starting OAK camera (model: ${CAMERA_MODEL}, camera-params: ${CAMERA_PARAMS})"
 
 # Chip-encoded H.264 presets that publish NO raw RGB (i_low_bandwidth=true) leave
 # the rectify + point-cloud nodes with no input. Force both off regardless of snap

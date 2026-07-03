@@ -74,6 +74,9 @@ done
 # config/ present. Writes files only (no snapctl set) so it can't disturb the
 # pipeline chosen via driver.camera-params.
 if [ -d "${SNAP_COMMON}/husarion-agent/config" ]; then
+    # OAK-D-PRO fallback is a deliberate cockpit prefill: before the operator
+    # declares driver.model, Manage still needs plausible capability cards +
+    # dropdown options. The launcher gate (not this) enforces the declaration.
     cam_model="$(snapctl get driver.model)"; : "${cam_model:=OAK-D-PRO}"
     case "$cam_model" in
         OAK-1|OAK-1-LITE)      has_stereo=false; has_ir=false; has_imu=false ;;

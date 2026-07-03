@@ -99,7 +99,7 @@ husarion-depthai-snap/
 │       ├── apply_defaults.sh        # idempotent driver.* defaults; called by install + post-refresh
 │       ├── camera-probe.py          # depthai capability probe (SPEC-camera-config; run by the camera concern apply hook)
 │       ├── image_view_launcher.sh   # helper for previewing RGB via ffmpeg image transport
-│       ├── post_install.sh          # snap connect raw-usb/hardware-observe/shm + restart daemon
+│       ├── post_install.sh          # snap connect raw-usb/hardware-observe/shm (no restart — daemon starts via .start)
 │       ├── camera-params-default.yaml          # RGB preset (host re-encode)
 │       ├── camera-params-rgb-h264-720p30.yaml  # chip H.264 only (rgb-h264-* family)
 │       ├── camera-params-rgb-raw-720p-h264-720p.yaml  # dual: raw + chip H.264 (rgb-raw-*-h264-* family, custom plugin)
