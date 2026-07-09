@@ -9,7 +9,7 @@ ROS 2 driver for Luxonis OAK-x depth cameras on Husarion robots. Publishes RGB (
 ## First run
 
 ```bash
-sudo /var/snap/husarion-depthai/common/post_install.sh       # one-time setup
+sudo /var/snap/husarion-depthai/common/post_install.sh       # interfaces + refresh hold
 sudo snap set husarion-depthai driver.model=<model>   # e.g. OAK-D-PRO
 sudo husarion-depthai.start
 ```
@@ -74,6 +74,7 @@ Embeds `husarion-agent` as a chain **follower (leaf)**. Installed next to a `ros
 
 - Big frames (1280x720 RGB ≈ 2.7 MB) fragment over UDP; a busy subscriber needs a large DDS receive buffer. A Husarion cockpit install raises the host `net.core.rmem_max` for this — on a bare standalone host, raise it yourself if a subscriber drops frames.
 - Depth is off unless `driver.camera-params` selects an RGBD preset.
+- `post_install.sh` **holds automatic snap refreshes** for this snap (an unattended store refresh would restart the driver and could move the robot off its validated revision — and these dual-output presets NEED the snap's own plugin part, so a surprise revision swap is extra risky here). Update deliberately with `sudo snap refresh husarion-depthai`; `sudo snap refresh --unhold husarion-depthai` restores auto-refresh.
 
 ## Logs
 
