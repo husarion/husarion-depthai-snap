@@ -68,7 +68,7 @@ iterate target="jazzy":
     chmod 444 snap/snapcraft.yaml
     snapcraft pack
 
-    unsquashfs husarion-depthai*.snap
+    sudo unsquashfs husarion-depthai*.snap
     sudo snap try squashfs-root/
     sudo /var/snap/husarion-depthai/common/post_install.sh
     sudo husarion-depthai.stop

@@ -42,6 +42,11 @@ if ! snapctl is-connected shm-plug; then
   esac
 fi
 
+if ! snapctl is-connected agent-chain; then
+  log_and_echo "Tip: to have this camera follow a robot's network config (RMW/domain-id/namespace), join its agent chain:"
+  log_and_echo "    \033[1msudo snap connect ${SNAP_NAME}:agent-chain rosbot:agent-chain\033[0m"
+fi
+
 log_and_echo "Starting camera model: \033[1m$MODEL\033[0m"
 
 snapctl start --enable "${SNAP_NAME}.daemon" 2>&1 || true

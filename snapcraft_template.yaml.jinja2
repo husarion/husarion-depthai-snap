@@ -21,6 +21,14 @@ description: |
 
   Depth is off in the default preset — pick an RGBD preset (e.g. `driver.camera-params=oak-d-pro`) or set `i_pipeline_type: RGBD` in your params file.
 
+  **Joining a robot's agent chain (optional)**
+
+  If a `rosbot` snap is installed alongside this one and you want this camera's network config (RMW, `ROS_DOMAIN_ID`, namespace) to follow the robot's, connect the chain manually:
+
+     sudo snap connect husarion-depthai:agent-chain rosbot:agent-chain
+
+  This is not done automatically — installing `husarion-depthai` never installs `rosbot`.
+
   **Parameters**
 
   The snap provides the following configurable parameters (`param name`: `default value`):
@@ -80,16 +88,16 @@ plugs:
     interface: shared-memory
     shared-memory: shm-slot
     private: false
-  # Zero-config snap chaining (SPEC-content-chain): when installed alongside the
-  # rosbot snap (same publisher), snapd auto-connects this plug to rosbot's
-  # agent-chain slot; connect-plug-agent-chain then self-joins via the CSR
-  # drop-box. `default-provider` is an install hint; the matcher is
-  # publisher-id + the content tag.
+  # Chaining (SPEC-content-chain) is opt-in, not auto-installed: no
+  # `default-provider`, so installing this snap never pulls in `rosbot` from
+  # the store. If a `rosbot` snap is present and you want this depthai snap to
+  # join its agent chain, connect manually:
+  #   sudo snap connect husarion-depthai:agent-chain rosbot:agent-chain
+  # connect-plug-agent-chain then self-joins via the CSR drop-box.
   agent-chain:
     interface: content
     content: husarion-agent-chain
     target: $SNAP_COMMON/agent-chain-upstream
-    default-provider: rosbot
 
 apps:
 
@@ -194,15 +202,14 @@ parts:
 
   husarion-snap-common:
     plugin: dump
-    source: https://github.com/husarion/husarion-snap-common
-    # 0.13.0 rejects ROS-invalid namespaces (hyphens / leading digit) at the
-    # configure hook. 0.12.0 adds the snap-agnostic standalone Manage panels
-    # (Health/Info) + the ros.env world-readable perms fix (0.11.0: cyclonedds
-    # large-frame buffer + ros.env regen serialize). 0.10.0 added the files-first
-    # husarion-agent launcher + the content-chain launcher logic + content-*.sh
-    # helpers (SPEC-content-chain). depthai gains the embedded husarion-agent for
-    # the first time here.
-    source-tag: "0.13.0"
+    # TEMP: husarion/husarion-snap-common#8 fixes husarion-agent/launcher.sh's
+    # `cp -a` EPERM under strict confinement (needs CAP_CHOWN it doesn't have)
+    # but isn't merged/tagged upstream yet. Points at the fork branch so CI can
+    # still fetch it. Once #8 merges and gets an official tag, switch back to
+    # `source: https://github.com/husarion/husarion-snap-common` +
+    # `source-tag: "<new tag>"` + `source-type: git`.
+    source: https://github.com/rafal-gorecki/husarion-snap-common
+    source-branch: fix/husarion-agent-chown-eperm
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
