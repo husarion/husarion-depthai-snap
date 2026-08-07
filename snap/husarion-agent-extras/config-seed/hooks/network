@@ -5,7 +5,10 @@ PROFILE="${HUSARION_AGENT_RMW_PROFILE:-}"
 # zenoh acceptance / zenoh-router toggle is the snap's own call (see
 # rosbot/hooks/network). We just forward the transport token.
 [ -n "${HUSARION_AGENT_ROS_DOMAIN_ID:-}" ] && snapctl set ros.domain-id="$HUSARION_AGENT_ROS_DOMAIN_ID" || true
-[ -n "${HUSARION_AGENT_ROS_NAMESPACE:-}" ] && snapctl set ros.namespace="$HUSARION_AGENT_ROS_NAMESPACE" || true
+# Push even when empty so clearing the namespace takes effect (as for
+# ros.static-peers below). "" is a valid namespace — unlike domain-id and
+# discovery range, which have no meaningful empty form and keep their guard.
+snapctl set ros.namespace="${HUSARION_AGENT_ROS_NAMESPACE:-}" || true
 # peer-discovery reach: snap key wants lowercase (off/localhost/subnet/system_default)
 [ -n "${HUSARION_AGENT_ROS_AUTOMATIC_DISCOVERY_RANGE:-}" ] && snapctl set ros.automatic-discovery-range="$(printf '%s' "$HUSARION_AGENT_ROS_AUTOMATIC_DISCOVERY_RANGE" | tr 'A-Z' 'a-z')" || true
 # Canonical "<kind>/<name>" transport token so the chosen RMW profile reaches
