@@ -153,6 +153,15 @@ just remove-lxd-cache   # free space from snapcraft LXD containers
 - These overrides are injected at launch level — they overwrite values from `camera-params-*.yaml`. If you want to control sync manually, set `enable-pointcloud=false` and add sync to your own preset.
 - PCL makes no sense for RGB-only presets (`default`, `oak-1-lite`) — `i_pipeline_type=RGB` does not produce `/<name>/stereo/image_raw` in the first place. Before flipping `enable-pointcloud=true`, make sure the preset is RGBD (`oak-d-pro`, `oak-d-pro-poe`).
 
+### Frame IDs are `<driver.name>_*` and cannot carry `ros.namespace`
+
+Comes up whenever someone wants the camera's frames namespaced. **There is no way to do it, and no `driver.tf-prefix`-style key can be added** — verified against upstream `v2.12.2-jazzy` and the robot URDF:
+
+- Image / camera_info headers get `frame_id = tfPrefix + "_" + <socket> + "_camera_optical_frame"`, and upstream's `sensor_helpers::tfPrefix()` returns **the ROS node name** unless `camera.i_publish_tf_from_calibration` is true, in which case it returns `camera.i_tf_base_frame`. No preset here sets either, so the effective frame is `<driver.name>_rgb_camera_optical_frame` — `oak_rgb_camera_optical_frame` by default.
+- That already matches the robot URDF: `husarion_components_description`'s `luxonis_depthai` macro passes `camera_name=<component_name>` (default `oak`) to `depthai_descriptions`' `depthai_camera`, which names its links `${camera_name}_rgb_camera_optical_frame` — **plain, no namespace**. Only `base_frame` and the Gazebo sensor blocks take a `<namespace>/` prefix.
+- **There is no lever to namespace them.** ROS node names cannot contain `/`, so the only other path is `i_tf_base_frame`, read *only* when `i_publish_tf_from_calibration=true` — the path deliberately dropped from this snap (coverage table in [ARCHITECTURE.md](ARCHITECTURE.md): "Husarion uses own robot URDF; would conflict"). Enabling it would publish a second TF tree for frames the robot's `robot_state_publisher` already owns.
+- Cross-snap consequence: this is why `husarion-rplidar` does **not** derive its `frame_id` from the namespace either (its `driver.frame-id` is forwarded verbatim, defaulting to plain `laser`) — the two snaps keep matching argument sets, and both stamp the plain tree that `robot_state_publisher` publishes. An operator can still hand-write `driver.frame-id=<namespace>/laser` there for the bridged global tree, but then the scan and the camera no longer resolve in one tree — so don't, if anything correlates them (e.g. the WebUI lidar→camera overlay).
+
 ### Data layout: `${SNAP_DATA}` vs `${SNAP_COMMON}`
 
 - **`${SNAP_DATA}` = `/var/snap/husarion-depthai/current/`** (per-revision, copied by snapd on refresh):
