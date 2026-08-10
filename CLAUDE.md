@@ -180,11 +180,28 @@ Comes up whenever someone wants the camera's frames namespaced. **There is no wa
 - depthai is a plain rclcpp node (no bridge), so the configure hook sets `HSC_ALLOW_ZENOH=1` to opt out of snap-common's zenoh gate.
 - The RMW choice happens at runtime via `RMW_IMPLEMENTATION` (exported in `${SNAP_COMMON}/ros.env` by the configure hook).
 
-### `fix-execstack` for `libamdhip64.so*`
+### `libamdhip64.so*` execstack — nothing to fix, don't re-add the part
 
-- The `fix-execstack` part ([snapcraft_template.yaml.jinja2:249](snapcraft_template.yaml.jinja2#L249)) clears execstack on `libamdhip64.so*` (pulled in as a transitive dependency; blocks startup under strict confinement).
-- If you add a new library with execstack ON — add it to the `choosen_files` list.
-- `execstack` is unavailable on `core24` hosts in some configurations — then the build needs `swap-enable` or a beefier machine.
+A `fix-execstack` part used to run `execstack -c` on `libamdhip64.so*` (added 2024-08, dropped 2026-08). Don't bring it back — it was never needed and never even worked:
+
+- **It was a silent no-op.** Store revision 167 (`jazzy/edge`) ships `usr/lib/x86_64-linux-gnu/libamdhip64.so.5` with `PT_GNU_STACK = RWE` — i.e. unpatched. The `if [ -f "$f" ]` guard swallowed the unexpanded glob, so ~2 years of builds packed, passed store review, and ran in production with execstack ON.
+- **Nothing loads the library.** A `DT_NEEDED` scan over all 1348 staged `.so` files finds exactly one dependent: `usr/lib/x86_64-linux-gnu/ucx/libucx_perftest_rocm.so.0.0.0`, a UCX perftest plugin the depthai node never touches. The old claim "pulled in via OpenCV / cv-bridge / ffmpeg" was wrong — none of those link it.
+- **Store review doesn't flag it.** `review-tools` whitelists `libamdhip64.so.5.*` in `reviewtools/overrides.py` ([MR merged 2024-07](https://code.launchpad.net/~gbeuzeboc/review-tools/+git/review-tools/+merge/469447), commit `e9c125b`) — ROCm shipped execstack by accident and Canonical exempted it.
+- Upstream `libamdhip64-5` (noble, `5.7.1-3`) still has `RWE` as of 2026-08, so don't use "is it RW yet" as the trigger to re-add anything — the library being unused is the reason it doesn't matter.
+- Bonus: dropping the part also drops the apt `execstack` build-package, which is unavailable on some `core24` hosts.
+
+If a genuinely-loaded lib ever shows up with execstack ON (`readelf -lW <so> | grep GNU_STACK` → `RWE`), fix it in the part that stages it — and verify the flags in the packed `.snap`, not just in the build log.
+
+### Local `review-tools` always FAILs on `shm-slot` — that one is expected
+
+`review-tools.snap-review husarion-depthai_*.snap` (the only local way to preview store review; `snapcraft pack` does not run it) always ends with:
+
+```
+declaration-snap-v2:slots_installation:shm-slot:shared-memory
+  human review required due to 'deny-installation' constraint (snap-type)
+```
+
+Not a regression. The `shared-memory` **slot** hits a `deny-installation` constraint in snapd's base declaration, and the local tool has no access to the per-snap declaration that lifts it. Ours grants it (`snap known snap-declaration series=16 snap-id=0TB3PBfK8MA4Skr4Ggzy3MrD7dbwmc4Q` → `slots: shared-memory: allow-installation` for `slot-names: [shm-slot]`, authority `canonical`, since 2024-09-04), which is why store uploads pass. Read a local review as "anything *besides* `shm-slot`?" — if a genuinely new snap-declaration constraint appears, the grant does not cover it and the upload will fail.
 
 ### Demo (`demo/`) — unofficial
 
