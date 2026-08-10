@@ -44,7 +44,7 @@ Detailed diagram → [ARCHITECTURE.md](ARCHITECTURE.md).
 5. **YAML files in `snap/local/` land in `${SNAP_DATA}`** (= `/var/snap/husarion-depthai/current/`). The install hook copies them on first install; the `post-refresh` hook overwrites **only the bundled presets** on every `snap refresh` — user-added YAMLs survive (snapd performs `$SNAP_DATA` data migration per revision). Legacy customs from `${SNAP_COMMON}` are one-shot migrated by post-refresh.
 6. **`restart-condition: always` on the daemon is not cosmetic.** The startup-delay workaround (see Pitfalls) used to rely on `exit 0` after the first sleep so systemd would restart the daemon — only the second iteration actually started ROS. After the move to the uptime check, the workaround no longer needs it, but the property remains as a general crash-recovery safeguard.
 7. **`grade: stable` is always set** ([snapcraft_template.yaml.jinja2:45](snapcraft_template.yaml.jinja2#L45)) regardless of channel. The version is taken from `apt-cache policy ros-{distro}-depthai-ros-driver` (Candidate).
-8. **Touching anything user-facing? Test on the target platform (RPi5/ARM64).** Some bugs (e.g. `fix-execstack` on `libamdhip64.so*`) only manifest on a specific architecture.
+8. **Touching anything user-facing? Test on the target platform (RPi5/ARM64).** Some bugs only manifest on a specific architecture — transitive apt deps differ (e.g. `libamdhip64` is amd64-only).
 
 ## Conventions
 
@@ -180,11 +180,17 @@ Comes up whenever someone wants the camera's frames namespaced. **There is no wa
 - depthai is a plain rclcpp node (no bridge), so the configure hook sets `HSC_ALLOW_ZENOH=1` to opt out of snap-common's zenoh gate.
 - The RMW choice happens at runtime via `RMW_IMPLEMENTATION` (exported in `${SNAP_COMMON}/ros.env` by the configure hook).
 
-### `fix-execstack` for `libamdhip64.so*`
+### `libamdhip64.so*` execstack — nothing to fix, don't re-add the part
 
-- The `fix-execstack` part ([snapcraft_template.yaml.jinja2:249](snapcraft_template.yaml.jinja2#L249)) clears execstack on `libamdhip64.so*` (pulled in as a transitive dependency; blocks startup under strict confinement).
-- If you add a new library with execstack ON — add it to the `choosen_files` list.
-- `execstack` is unavailable on `core24` hosts in some configurations — then the build needs `swap-enable` or a beefier machine.
+A `fix-execstack` part used to run `execstack -c` on `libamdhip64.so*` (added 2024-08, dropped 2026-08). Don't bring it back — it was never needed and never even worked:
+
+- **It was a silent no-op.** Store revision 167 (`jazzy/edge`) ships `usr/lib/x86_64-linux-gnu/libamdhip64.so.5` with `PT_GNU_STACK = RWE` — i.e. unpatched. The `if [ -f "$f" ]` guard swallowed the unexpanded glob, so ~2 years of builds packed, passed store review, and ran in production with execstack ON.
+- **Nothing loads the library.** A `DT_NEEDED` scan over all 1348 staged `.so` files finds exactly one dependent: `usr/lib/x86_64-linux-gnu/ucx/libucx_perftest_rocm.so.0.0.0`, a UCX perftest plugin the depthai node never touches. The old claim "pulled in via OpenCV / cv-bridge / ffmpeg" was wrong — none of those link it.
+- **Store review doesn't flag it.** `review-tools` whitelists `libamdhip64.so.5.*` in `reviewtools/overrides.py` ([MR merged 2024-07](https://code.launchpad.net/~gbeuzeboc/review-tools/+git/review-tools/+merge/469447), commit `e9c125b`) — ROCm shipped execstack by accident and Canonical exempted it.
+- Upstream `libamdhip64-5` (noble, `5.7.1-3`) still has `RWE` as of 2026-08, so don't use "is it RW yet" as the trigger to re-add anything — the library being unused is the reason it doesn't matter.
+- Bonus: dropping the part also drops the apt `execstack` build-package, which is unavailable on some `core24` hosts.
+
+If a genuinely-loaded lib ever shows up with execstack ON (`readelf -lW <so> | grep GNU_STACK` → `RWE`), fix it in the part that stages it — and verify the flags in the packed `.snap`, not just in the build log.
 
 ### Demo (`demo/`) — unofficial
 

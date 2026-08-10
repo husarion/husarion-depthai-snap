@@ -204,7 +204,6 @@ ROS_DISTRO=jazzy   ──► ./render_template.py snapcraft_template.yaml.jinja2
                               ├── git clone husarion-snap-common@0.13.0 → dump
                               ├── snap/local/ → dump
                               ├── curl yq → bin
-                              ├── execstack -c libamdhip64.so* (part of fix-execstack)
                               └── version = `apt-cache policy ros-{distro}-depthai-ros-driver | Candidate`
                        │
                        └─► husarion-depthai_<version>_<arch>.snap (~543 MB)
@@ -353,11 +352,11 @@ ______________________________________________________________________
 
 **Why**: ROS 2 with FastDDS in SHM mode needs access to `/dev/shm`. Strict confinement blocks foreign SHM by default. The snap declares its *own* shared-memory slot and connects to it (auto-connect after `post_install.sh`).
 
-### D7. `fix-execstack` for `libamdhip64.so*`
+### D7. No `execstack` fixup for `libamdhip64.so*` (part dropped 2026-08)
 
-**Why**: AMD HIP runtime (pulled in indirectly via OpenCV / cv-bridge / ffmpeg) has execstack ON, which snapd blocks under strict confinement. `execstack -c` neutralizes it without abandoning strict.
+**Why**: the `fix-execstack` part (2024-08 … 2026-08) was a no-op that solved a non-problem. Published revisions ship the library with `PT_GNU_STACK = RWE` regardless, nothing in the snap loads it (sole `DT_NEEDED` dependent: a UCX perftest plugin), and `review-tools` whitelists `libamdhip64.so.5.*` for the accidental ROCm execstack. Details + the verification commands: [CLAUDE.md → "`libamdhip64.so*` execstack"](CLAUDE.md).
 
-**Consequence**: if a new lib with execstack ON shows up, add it to `choosen_files` in `fix-execstack`. The build needs the apt `execstack` package.
+**Consequence**: no apt `execstack` build-dependency. Don't re-add the part on a depthai-ros bump; check whether the lib is actually *loaded* first.
 
 ### D8. Pointcloud controlled via `driver.*`, not via the params YAML
 
@@ -424,7 +423,7 @@ ______________________________________________________________________
 
 3. **`ros2-{distro}-ros-base` extension requires an experimental flag** — `SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1`. If that flag is removed/renamed, the build breaks.
 
-4. **`fix-execstack` requires apt `execstack`** — may be unavailable in some core24 configurations. If so, `just swap-enable` or a beefier machine helps (LXD OOM).
+4. ~~`fix-execstack` requires apt `execstack`~~ — **resolved**: the part was dropped (see D7), so no `execstack` build-dependency. Residual: `libamdhip64-5` (~24 MB) still stages as an unused transitive dep on amd64; prunable via `prime: -usr/lib/x86_64-linux-gnu/libamdhip64.so*` if the snap size ever matters.
 
 5. **`demo/`** — unofficial, scheduled for removal (compose + RViz). Don't treat it as part of the supported surface.
 
