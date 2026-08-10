@@ -164,8 +164,13 @@ parts:
       - libjpeg-turbo8-dev
     override-stage: |
       craftctl default
-      version="$(apt-cache policy ros-{{ ros_distro }}-depthai-ros-driver | grep Candidate | awk '{print $2}')"
-      craftctl set version="$version"
+      # Upstream release + build date. The apt Candidate's `-1noble.<timestamp>` tail is
+      # buildfarm noise that also shifts between the two arch runners when their apt
+      # caches differ; build_date is injected once per CI run so both arches agree.
+      upstream="$(apt-cache policy ros-{{ ros_distro }}-depthai-ros-driver \
+                   | grep Candidate | awk '{print $2}' | sed -E 's/-[0-9].*$//')"
+      case "$upstream" in [0-9]*) ;; *) upstream="unknown" ;; esac
+      craftctl set version="${upstream}-{{ build_date }}"
       craftctl set grade="stable"
 
   # Custom depthai_ros_driver pipeline plugin (pluginlib): RGB raw + on-chip-H.264

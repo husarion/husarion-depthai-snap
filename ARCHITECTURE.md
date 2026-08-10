@@ -204,7 +204,8 @@ ROS_DISTRO=jazzy   ──► ./render_template.py snapcraft_template.yaml.jinja2
                               ├── git clone husarion-snap-common@0.13.0 → dump
                               ├── snap/local/ → dump
                               ├── curl yq → bin
-                              └── version = `apt-cache policy ros-{distro}-depthai-ros-driver | Candidate`
+                              ├── execstack -c libamdhip64.so* (part of fix-execstack)
+                              └── version = <apt Candidate, buildfarm tail stripped>-<CI build date>
                        │
                        └─► husarion-depthai_<version>_<arch>.snap (~543 MB)
 ```
@@ -302,7 +303,7 @@ ______________________________________________________________________
 | Integration | Method | Pinned version |
 | -- | -- | -- |
 | `husarion-snap-common` | git clone in `parts.husarion-snap-common.source` | branch/tag `0.13.0` |
-| `depthai-ros` | apt (`ros-{distro}-depthai-ros`) from the ROS 2 distro repo | dynamic (`apt-cache policy …\| Candidate`) |
+| `depthai-ros` | apt (`ros-{distro}-depthai-ros`) from the ROS 2 distro repo | dynamic (`apt-cache policy …\| Candidate`, see D3b) |
 | `yq` | curl from GitHub releases | `v4.35.1` |
 | ROS 2 base | snapcraft extension `ros2-{distro}-ros-base` | distro = humble \| jazzy |
 | Snap Store | `snapcore/action-publish@v1` | tracks: `humble/edge`, `humble/candidate`, `jazzy/edge`, `jazzy/candidate` |
@@ -328,7 +329,15 @@ ______________________________________________________________________
 
 **Why**: a `colcon` build from `luxonis/depthai-ros` was slow and brittle (commit c986807 "install snap from apt packages"). apt is deterministic and 10× faster.
 
-**Consequence**: snap version = apt Candidate. Upstream bug → wait for a package release. No way to use a commit-level pin.
+**Consequence**: the snap version's upstream part comes from the apt Candidate (see D3b). Upstream bug → wait for a package release. No way to use a commit-level pin.
+
+### D3b. Snap version = `<upstream depthai-ros release>-<build date>`
+
+E.g. `2.12.2-20260810`. Set in the `husarion-depthai` part's `override-stage`: the apt Candidate `2.12.2-1noble.20260616.073324` is cut at the Debian revision (`sed -E 's/-[0-9].*$//'`), then the injected build date is appended. A Candidate that doesn't start with a digit (`(none)` — package missing) degrades to `unknown-<date>`.
+
+**Why**: the buildfarm tail is noise, and it shifts between the two arch runners when their apt caches differ — the same release would ship as two different versions. The date replaces it with one value per CI run, and it keeps two snap releases built off the same upstream package distinguishable (this repo's own content — presets, hooks, the `husarion_depthai_pipeline` plugin — moves without depthai-ros moving).
+
+`build_date` comes from `render_template.py`: `BUILD_DATE` env if set, otherwise today's UTC date. `publish.yaml` computes it **once** in the `build-date` job and hands it to both matrix arches. `build.yaml` (PR, amd64-only) uses the local default. Same scheme in `rosbot-snap` and `husarion-rplidar-snap`, which take the upstream part from `git describe --tags` instead.
 
 ### D4. Startup-delay via uptime check
 
@@ -431,7 +440,7 @@ ______________________________________________________________________
 
 6. **`humble` track** — actively maintained (CI matrix), but ROS 2 Humble is pre-EOL; users will be migrated to `jazzy`.
 
-7. **Snap version = apt Candidate** — if the apt cache is stale on a GH Actions runner, the version may shift between builds on the same day.
+7. **Snap version tracks the apt Candidate** — a stale apt cache on a GH Actions runner still changes the upstream part of the version; only the buildfarm timestamp jitter is gone (see D3b).
 
 8. **No unit/integration tests** — the only validation is "snap install --dangerous" in CI. Runtime regressions (e.g. a change in `launcher.sh`) are caught only by manual launch on the target platform.
 
