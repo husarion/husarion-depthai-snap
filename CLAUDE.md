@@ -192,6 +192,17 @@ A `fix-execstack` part used to run `execstack -c` on `libamdhip64.so*` (added 20
 
 If a genuinely-loaded lib ever shows up with execstack ON (`readelf -lW <so> | grep GNU_STACK` → `RWE`), fix it in the part that stages it — and verify the flags in the packed `.snap`, not just in the build log.
 
+### Local `review-tools` always FAILs on `shm-slot` — that one is expected
+
+`review-tools.snap-review husarion-depthai_*.snap` (the only local way to preview store review; `snapcraft pack` does not run it) always ends with:
+
+```
+declaration-snap-v2:slots_installation:shm-slot:shared-memory
+  human review required due to 'deny-installation' constraint (snap-type)
+```
+
+Not a regression. The `shared-memory` **slot** hits a `deny-installation` constraint in snapd's base declaration, and the local tool has no access to the per-snap declaration that lifts it. Ours grants it (`snap known snap-declaration series=16 snap-id=0TB3PBfK8MA4Skr4Ggzy3MrD7dbwmc4Q` → `slots: shared-memory: allow-installation` for `slot-names: [shm-slot]`, authority `canonical`, since 2024-09-04), which is why store uploads pass. Read a local review as "anything *besides* `shm-slot`?" — if a genuinely new snap-declaration constraint appears, the grant does not cover it and the upload will fail.
+
 ### Demo (`demo/`) — unofficial
 
 - `demo/compose.yaml` + `demo/rviz.launch.py` — container with RViz + an `ffmpeg→raw` decoder. Ad-hoc test only. Do not treat as part of the supported user workflow; may be removed.

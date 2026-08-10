@@ -352,6 +352,8 @@ ______________________________________________________________________
 
 **Why**: ROS 2 with FastDDS in SHM mode needs access to `/dev/shm`. Strict confinement blocks foreign SHM by default. The snap declares its *own* shared-memory slot and connects to it (auto-connect after `post_install.sh`).
 
+**Consequence**: declaring a `shared-memory` slot needs a store snap-declaration (we have one, `allow-installation` for `shm-slot`). Local `review-tools` doesn't see it and always FAILs on `shm-slot` — see [CLAUDE.md → "Local `review-tools` always FAILs on `shm-slot`"](CLAUDE.md).
+
 ### D7. No `execstack` fixup for `libamdhip64.so*` (part dropped 2026-08)
 
 **Why**: the `fix-execstack` part (2024-08 … 2026-08) was a no-op that solved a non-problem. Published revisions ship the library with `PT_GNU_STACK = RWE` regardless, nothing in the snap loads it (sole `DT_NEEDED` dependent: a UCX perftest plugin), and `review-tools` whitelists `libamdhip64.so.5.*` for the accidental ROCm execstack. Details + the verification commands: [CLAUDE.md → "`libamdhip64.so*` execstack"](CLAUDE.md).
