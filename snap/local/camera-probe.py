@@ -140,11 +140,8 @@ def main():
 
     # Dynamic-enum option files (the manifest points its `dynamic.path` here).
     write_opts(caps_dir, "model", sorted(MATRIX.keys()))
-    write_opts(caps_dir, "mxid", mxids)  # empty when offline → "any device"
     write_opts(caps_dir, "rgb_resolution", caps["rgb_res"])
     write_opts(caps_dir, "rgb_fps", caps["rgb_fps"])
-    write_opts(caps_dir, "depth_resolution", caps["depth_res"])
-    write_opts(caps_dir, "depth_fps", caps["depth_fps"])
 
     record = dict(model=model, mxids=mxids, **caps)
     with open(os.path.join(caps_dir, "capabilities.json"), "w") as f:

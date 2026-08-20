@@ -37,7 +37,7 @@ namespace dai_nodes {
 // A single-sensor RGB node that publishes BOTH representations of one camera
 // stream off a single ColorCamera.video (NV12) output, simultaneously:
 //   * raw  sensor_msgs/Image          on  <topic>/image_raw            (autonomy)
-//   * on-chip H.264 FFMPEGPacket      on  <topic>/image_raw/compressed (telepresence)
+//   * on-chip H.264 FFMPEGPacket      on  <topic>/image_raw/ffmpeg (telepresence)
 //
 // The encoded path runs entirely on the OAK's hardware VideoEncoder — no host
 // encode, no /dev/dri, no new snap interface. The raw path is a host XLinkOut tap.

@@ -24,21 +24,10 @@ def launch_setup(context, *args, **kwargs):
 
     name = LaunchConfiguration("name").perform(context)
     namespace = LaunchConfiguration("namespace").perform(context)
-    enable_pointcloud = LaunchConfiguration("enable_pointcloud").perform(context) == "true"
 
     rgb_topic_name = name + "/rgb/image_raw"
     if LaunchConfiguration("rectify_rgb").perform(context) == "true":
         rgb_topic_name = name + "/rgb/image_rect"
-
-    # When pointcloud is on, force RGB↔stereo timestamp sync so PointCloudXyzrgbNode
-    # gets matched frames. Mirrors upstream camera.launch.py pointcloud.enable handling.
-    pcl_param_overrides = {}
-    if enable_pointcloud:
-        pcl_param_overrides = {
-            "pipeline_gen": {"i_enable_sync": True},
-            "rgb": {"i_synced": True},
-            "stereo": {"i_synced": True},
-        }
 
     container_name = f"/{namespace}/{name}_container" if namespace else f"/{name}_container"
 
@@ -60,7 +49,7 @@ def launch_setup(context, *args, **kwargs):
                     plugin="depthai_ros_driver::Camera",
                     name=name,
                     namespace=namespace,
-                    parameters=[params_file, ffmpeg_params_file, pcl_param_overrides],
+                    parameters=[params_file],
                 )
             ],
             arguments=["--ros-args", "--log-level", log_level],
@@ -78,6 +67,10 @@ def launch_setup(context, *args, **kwargs):
                     plugin="image_proc::RectifyNode",
                     name=name + "_rectify_color_node",
                     namespace=namespace,
+                    # ffmpeg_params_file restricts this node's own lazy image_transport
+                    # republishers (enable_pub_plugins — excludes compressedDepth, wrong
+                    # for 8-bit RGB) and configures the ffmpeg encoder. See
+                    # ffmpeg-params-default.yaml.
                     parameters=[ffmpeg_params_file],
                     remappings=[
                         ("image", name + "/rgb/image_raw"),
@@ -88,9 +81,8 @@ def launch_setup(context, *args, **kwargs):
                             "image_rect/compressedDepth",
                             name + "/rgb/image_rect/compressedDepth",
                         ),
-                        ("image_rect/theora", name + "/rgb/image_rect/theora"),
-                        ("image_rect/ffmpeg", name + "/rgb/image_rect/ffmpeg"),
                         ("image_rect/zstd", name + "/rgb/image_rect/zstd"),
+                        ("image_rect/ffmpeg", name + "/rgb/image_rect/ffmpeg"),
                     ],
                 )
             ],
@@ -99,7 +91,7 @@ def launch_setup(context, *args, **kwargs):
 
     actions.append(
         LoadComposableNodes(
-            condition=IfCondition(LaunchConfiguration("enable_pointcloud")),
+            condition=IfCondition(LaunchConfiguration("pointcloud")),
             target_container=container_name,
             composable_node_descriptions=[
                 ComposableNode(
@@ -130,10 +122,10 @@ def generate_launch_description():
             "params_file",
             default_value=os.path.join(depthai_prefix, "config", "rgbd.yaml"),
         ),
-        DeclareLaunchArgument("ffmpeg_params_file"),
         DeclareLaunchArgument("rectify_rgb", default_value="true"),
+        DeclareLaunchArgument("ffmpeg_params_file"),
         DeclareLaunchArgument(
-            "enable_pointcloud",
+            "pointcloud",
             default_value="false",
             description="Load depth_image_proc::PointCloudXyzrgbNode and force RGB/stereo sync.",
         ),

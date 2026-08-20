@@ -40,7 +40,7 @@ namespace dai_nodes {
 // VERIFIED on an OAK-D-LITE (2026-06-22). Mirrors the stock Stereo node's
 // StereoDepth setup; depth dual output off one StereoDepth node, simultaneously:
 //   * depth 16UC1 sensor_msgs/Image  on  <topic>/image_raw            (autonomy — METRIC)
-//   * disparity H.264 FFMPEGPacket    on  <topic>/image_raw/compressed (telepresence — VIEW)
+//   * disparity H.264 FFMPEGPacket    on  <topic>/image_raw/ffmpeg (telepresence — VIEW)
 //
 // LOAD-BEARING: H.264 is lossy 8-bit; depth is 16-bit metric data. You NEVER H.264
 // the metric depth (it corrupts distances). The encoded stream is the 8-bit

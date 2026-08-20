@@ -5,65 +5,41 @@ license: Apache-2.0
 summary: OAK-x cameras driver for Husarion robots
 icon: snap/gui/icon.png
 description: |
-  The `husarion-depthai` snap contains all the necessary software to bring the OAK-x cameras up.
+  ROS 2 driver for Luxonis OAK-x depth cameras on Husarion robots. Publishes RGB (raw + on-chip H.264 — hardware-encoded, ~0 host CPU) and, when enabled, depth + a point cloud.
 
   **Installation**
 
      sudo snap install husarion-depthai
-
-  After installation, connect the required interfaces (`raw-usb`, `hardware-observe`, shared memory), set the camera model and start the driver:
-
      sudo /var/snap/husarion-depthai/common/post_install.sh
      sudo snap set husarion-depthai driver.model=OAK-D-PRO
      sudo husarion-depthai.start
 
-  **Tip**
+  `post_install.sh` connects the interfaces snapd doesn't auto-connect on sideloaded installs. `driver.model` is required before start (hardware is autodetected; this is validation/cockpit metadata).
 
-  Depth is off in the default preset — pick an RGBD preset (e.g. `driver.camera-params=oak-d-pro`) or set `i_pipeline_type: RGBD` in your params file.
+  **Camera settings** (`sudo snap set husarion-depthai <key>=<value>`)
 
-  **Joining a robot's agent chain (optional)**
+  * `driver.depth=true` — adds metric depth + an on-chip H.264 disparity preview. Needs a stereo OAK (rejected on OAK-1/OAK-1-LITE).
+  * `driver.pointcloud=true` — publishes a `/points` point cloud (implies `depth=true`).
+  * `driver.resolution` (`720P`/`1080P`/`4K`, default `720P`) and `driver.fps` (1-60, default `30`) — RGB resolution/framerate.
+  * `driver.imu=true` — enable the IMU, on models that have one.
+  * `driver.ir=true` — enable the IR laser dot projector + floodlight (OAK-D-PRO/-W only).
+  * `driver.ip=<address>` — PoE camera's IP address; leave unset for USB.
+  * `driver.rectify-rgb=false` — skip rectification to save CPU (raw image is always published regardless).
+  * `driver.name`, `driver.startup-delay` — node name / topic prefix; USB cold-start delay after a fresh reboot.
 
-  If a `rosbot` snap is installed alongside this one and you want this camera's network config (RMW, `ROS_DOMAIN_ID`, namespace) to follow the robot's, connect the chain manually:
+  Every setting above is checked against the declared camera model — an unsupported combination (e.g. depth on an OAK-1) is rejected immediately with a clear reason, never a silent failure at runtime.
 
-     sudo snap connect husarion-depthai:agent-chain rosbot:agent-chain
-
-  This is not done automatically — installing `husarion-depthai` never installs `rosbot`.
-
-  **Parameters**
-
-  The snap provides the following configurable parameters (`param name`: `default value`):
-
-  * `driver`: `{...}`
-  * `ros`: `{...}`
-
-  The `ros` contains the following keys:
-
-  * `ros.domain-id`: `0` - Sets the `ROS_DOMAIN_ID` environment variable for the ROS driver.
-  * `ros.localhost-only`: `0` - Sets the `ROS_LOCALHOST_ONLY` environment variable for the ROS driver.
-  * `ros.transport`: `udp` - Configures DDS transport. Options: `udp`, `shm`, `udp-lo`, `fastdds/<name>`, `cyclonedds/<name>`, `builtin` (or `rmw_fastrtps_cpp`), `rmw_cyclonedds_cpp`. Profile files live under `/var/snap/husarion-depthai/common/rmw/<impl>/` (add custom ones there). Zenoh arrives via the agent chain, not `ros.transport`.
-  * `ros.namespace`: `(unset)` - Namespace for all topics and transforms.
-
-  The `driver` contains the following keys:
-
-  * name: `oak` - ROS 2 node name; also the prefix in published topic paths (`/<ns>/<name>/rgb/...`).
-  * model: `(unset)` - one of `OAK-D`, `OAK-D-LITE`, `OAK-1`, `OAK-1-LITE`, `OAK-D-PRO`, `OAK-D-PRO-W`. **Required before the driver starts**; used for snap-side validation and cockpit capability cards — the depthai driver autodetects the actual hardware.
-  * camera-params: `default` - Sets the camera parameters based on `/var/snap/husarion-depthai/current/camera-params-<VALUE>.yaml`. Bundled presets cover plain RGB/RGBD pipelines (`default`, `oak-1-lite`, `oak-d-pro`, `oak-d-pro-poe`, `oak-d-pro-slam`), the OAK on-chip H.264 streaming family (`rgb-h264-*`), and the dual raw + on-chip H.264 family (`rgb-raw-*-h264-*`, `rgbd-*`) — see the project README for the full preset table. Bundled presets are refreshed on every `snap refresh`; user-added `camera-params-*.yaml` files are preserved and appear automatically in the cockpit Manage dropdown.
-  * ffmpeg-params: `default` - Sets the FFMPEG parameters based on `/var/snap/husarion-depthai/current/ffmpeg-params-<VALUE>.yaml`
-  * startup-delay: `30` - Seconds to sleep on first launch after a fresh boot — workaround for the depthai-ros USB cold-start race. `0`/`''` disables; raise (60+) on slow-booting hosts.
-  * enable-pointcloud: `false` - Load `depth_image_proc::PointCloudXyzrgbNode` and force RGB/stereo timestamp sync. Requires RGBD pipeline (e.g. `camera-params=oak-d-pro`).
-  * rectify-rgb: `true` - Publish rectified `<name>/rgb/image_rect` (`image_proc::RectifyNode`); `false` skips it — saves CPU, `image_raw` is always published.
-
-  To set the parameters, use the snap set command, e.g.,
-
-     snap set husarion-depthai ros.namespace=robot
+  **ROS network**: `ros.namespace`, `ros.domain-id`, `ros.transport` (`udp`/`shm`/`udp-lo`, `fastdds/<name>`, `cyclonedds/<name>`, `rmw_cyclonedds_cpp`).
 
   **Husarion cockpit integration**
 
-  This snap embeds **husarion-agent** as a chain follower: ROS network config (RMW incl. Zenoh, `ROS_DOMAIN_ID`, namespace) and custom RMW profiles set on the chain owner (the rosbot snap, or the cockpit WebUI **Manage** tab) propagate here automatically — when chained, don't set `ros.transport` locally. The `ros.*` keys above are the standalone path.
+  Installed alongside a `rosbot` snap, this joins its agent chain automatically and inherits ROS network config (RMW incl. Zenoh, domain, namespace) from the cockpit **Manage** tab — the Camera card there exposes the same `driver.*` keys as fields. When chained, don't set `ros.transport` locally. Sideloaded installs need `snap connect husarion-depthai:agent-chain rosbot:agent-chain` once.
+
+  Full parameter reference, custom camera presets, and architecture notes: see the project README.
 
 grade: stable
 confinement: strict
-base: {{ 'core22' if ros_distro == 'humble' else 'core24' }}
+base: core24
 # Content interface + same-publisher auto-connect for zero-config snap chaining
 # (SPEC-content-chain).
 assumes: [snapd2.43]
@@ -144,16 +120,46 @@ apps:
 
 parts:
 
-  # uncomment when depthai-ros package for jazzy is available here: https://index.ros.org/search/?term=depthai
+  # Stages depthai-ros (+ supporting ROS packages) via apt AND builds our custom
+  # depthai_ros_driver pipeline plugin (pluginlib) against them in the SAME part —
+  # RGB raw + on-chip-H.264 dual output (RGBDual) + RGB+depth dual (RGBDDual,
+  # toggled by driver.depth). Primed into /opt/ros/{{ ros_distro }} so the driver's
+  # class loader autoloads it — generate_camera_params.sh (run by the configure
+  # hook) always sets camera.i_pipeline_type to RGBDual or RGBDDual, never a stock
+  # type. Verified live via `snap try`.
+  #
+  # One part, not two (was two until 2026-08): `ros-{{ ros_distro }}-depthai-ros`
+  # below already transitively apt-depends on depthai/depthai-bridge/
+  # depthai-ros-driver/camera-info-manager (verified with `apt-cache depends
+  # --recurse`) — a separate `husarion-depthai-pipeline` part's own build-packages
+  # list for those was fully redundant, and worse, resolved the same
+  # libopencv-imgcodecs -> libgdal -> libpq5 chain a second time via a second apt
+  # run that could land on a different snapshot than this part's, tripping
+  # snapcraft's "different contents or permissions" staging conflict (hit 2026-08).
+  # Merging removes the second resolution entirely instead of excluding one copy.
   husarion-depthai:
-    plugin: nil
+    plugin: colcon
+    source: ros/
+    source-type: local
+    colcon-packages: [husarion_depthai_pipeline]
     stage-packages:
       - ros-{{ ros_distro }}-depthai-ros
       - ros-{{ ros_distro }}-image-transport
       - ros-{{ ros_distro }}-image-transport-plugins
-      # https://index.ros.org/p/ffmpeg_image_transport/github-ros-misc-utilities-ffmpeg_image_transport/#humble
+      # Two SEPARATE things need ffmpeg_image_transport_msgs/FFMPEGPacket support here:
+      #  1. On-chip H.264 (image_raw, always on): husarion_depthai_pipeline builds these
+      #     messages itself from the OAK VPU's bitstream — needs only the MESSAGE
+      #     package, not the actual encoder plugin. Near-zero host CPU.
+      #  2. Rectified RGB (image_rect, image_proc::RectifyNode): the on-chip encoder
+      #     taps the RAW pre-rectification frame ONLY — there is no hardware path for
+      #     an encoded RECTIFIED stream. The real ffmpeg_image_transport PLUGIN (host
+      #     CPU, ~127% of a core) is the only way to get one, hence it's staged too
+      #     (removed then re-added 2026-08 — see CLAUDE.md "ffmpeg_image_transport for
+      #     image_rect"). See ffmpeg-params-default.yaml for its config.
+      # https://index.ros.org/p/ffmpeg_image_transport/github-ros-misc-utilities-ffmpeg_image_transport/#jazzy
       - ros-{{ ros_distro }}-ffmpeg-image-transport
       - ffmpeg
+      - ros-{{ ros_distro }}-ffmpeg-image-transport-msgs
       - ros-{{ ros_distro }}-cv-bridge
       - ros-{{ ros_distro }}-rmw-fastrtps-cpp
       - ros-{{ ros_distro }}-rmw-cyclonedds-cpp
@@ -173,33 +179,15 @@ parts:
       craftctl set version="${upstream}-{{ build_date }}"
       craftctl set grade="stable"
 
-  # Custom depthai_ros_driver pipeline plugin (pluginlib): RGB raw + on-chip-H.264
-  # dual output (plus a draft RGB+depth class). Built against the staged
-  # ros-{{ ros_distro }}-depthai-ros and primed into /opt/ros/{{ ros_distro }} so the
-  # driver's class loader autoloads it when a camera-params preset sets
-  # camera.i_pipeline_type=husarion_depthai::pipeline_gen::RGBDual (see
-  # camera-params-rgb-raw-*.yaml). Verified live via `snap try`; this part wires it
-  # into a clean pack — validate on the first release pack.
-  husarion-depthai-pipeline:
-    plugin: colcon
-    source: ros/
-    source-type: local
-    after: [husarion-depthai]
-    colcon-packages: [husarion_depthai_pipeline]
-    build-packages:
-      - ros-{{ ros_distro }}-depthai-ros-driver
-      - ros-{{ ros_distro }}-depthai
-      - ros-{{ ros_distro }}-depthai-bridge
-      - ros-{{ ros_distro }}-ffmpeg-image-transport-msgs
-      - ros-{{ ros_distro }}-image-transport
-      - ros-{{ ros_distro }}-camera-info-manager
-
   local-files:
     plugin: dump
     source: snap/local/
     organize:
       '*.sh': usr/bin/
       '*.py': usr/bin/
+      # Only ffmpeg-params-default.yaml lands here — camera-params-autogenerated.yaml
+      # is written straight to $SNAP_DATA at runtime by generate_camera_params.sh,
+      # never bundled in the snap itself.
       '*.yaml': usr/share/husarion-depthai/config/
       'AGENTS.md': usr/share/husarion-depthai/AGENTS.md
       # '*.xml': usr/share/husarion-depthai/config/

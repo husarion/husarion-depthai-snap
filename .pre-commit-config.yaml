@@ -47,3 +47,15 @@ repos:
         args: [--compact-tables]
         additional_dependencies:
           - mdformat-gfm==1.0.0
+
+  - repo: local
+    hooks:
+      # snapcraft.yaml is generated, and its limits are only enforced by
+      # `snap pack --check-skeleton` — ten minutes into a build, or in CI. Render
+      # both distros here instead: catches jinja errors, invalid YAML and an
+      # over-long description/summary in about a second.
+      - id: snapcraft-template
+        name: snapcraft template renders within snapcraft's limits
+        entry: ./render_template.py --check
+        language: system
+        files: ^snapcraft_template\.yaml\.jinja2$

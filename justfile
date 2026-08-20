@@ -2,21 +2,12 @@
 default:
     @just --list --unsorted
 
-build target="humble":
+build:
     #!/bin/bash
     set -euo pipefail
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
-
-    if [ {{target}} == "humble" ]; then
-        export ROS_DISTRO=humble
-        export CORE_VERSION=core22
-    elif [ {{target}} == "jazzy" ]; then
-        export ROS_DISTRO=jazzy
-        export CORE_VERSION=core24
-    else
-        echo "Unknown target: $target"
-        exit 1
-    fi
+    export ROS_DISTRO=jazzy
+    export CORE_VERSION=core24
 
     ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
 
@@ -41,7 +32,7 @@ clean:
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
     snapcraft clean
 
-iterate target="jazzy":
+iterate:
     #!/bin/bash
     set -euo pipefail
     start_time=$(date +%s)
@@ -52,15 +43,7 @@ iterate target="jazzy":
     sudo rm -rf squashfs-root/
     sudo rm -rf husarion-depthai*.snap
     export SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS=1
-
-    if [ {{target}} == "humble" ]; then
-        export ROS_DISTRO=humble
-    elif [ {{target}} == "jazzy" ]; then
-        export ROS_DISTRO=jazzy
-    else
-        echo "Unknown target: {{target}}"
-        exit 1
-    fi
+    export ROS_DISTRO=jazzy
 
     snapcraft clean
     sudo rm -rf snap/snapcraft.yaml
