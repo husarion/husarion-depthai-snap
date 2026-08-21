@@ -57,5 +57,6 @@ repos:
       - id: snapcraft-template
         name: snapcraft template renders within snapcraft's limits
         entry: ./render_template.py --check
-        language: system
+        language: python
+        additional_dependencies: [jinja2, pyyaml]
         files: ^snapcraft_template\.yaml\.jinja2$
