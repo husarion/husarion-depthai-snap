@@ -21,7 +21,9 @@ IR="$(snapctl get driver.ir)"
 IP="$(snapctl get driver.ip)"
 
 # rgb.i_fps wants a float literal ("30.0"); i_low_bandwidth_frame_freq wants an
-# int ("30") — depthai_ros_driver rejects a float there.
+# int ("30") — depthai_ros_driver rejects a float there. The *.*) branch is
+# unreachable today (configure's validate_number only accepts an integer for
+# driver.fps) — kept defensively in case that constraint ever loosens.
 case "$FPS" in
   *.*) FPS_FLOAT="$FPS"; FPS_INT="${FPS%%.*}" ;;
   *)   FPS_FLOAT="${FPS}.0"; FPS_INT="$FPS" ;;

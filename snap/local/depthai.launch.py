@@ -127,7 +127,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "pointcloud",
             default_value="false",
-            description="Load depth_image_proc::PointCloudXyzrgbNode and force RGB/stereo sync.",
+            description="Load depth_image_proc::PointCloudXyzrgbNode (requires driver.depth=true).",
         ),
     ]
 
