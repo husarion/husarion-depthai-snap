@@ -144,9 +144,10 @@ void RGBDual::setupQueues(std::shared_ptr<dai::Device> device) {
     // standard image_transport ffmpeg_image_transport topic suffix convention (2026-08;
     // was /compressed, which by convention is JPEG/PNG via compressed_image_transport).
     // The FFMPEGPacket codec token is set to "h264" (the bitstream IS on-chip h264, not
-    // libx264); the cockpit keys the "sensor" provenance badge off this suffix, and
-    // accepts h264/libx264/h264_* alike. camera_info parked under image_raw/ to avoid
-    // clobbering the raw stream's canonical <topic>/camera_info.
+    // libx264) and accepts h264/libx264/h264_* alike. The cockpit's "sensor" provenance
+    // badge currently keys off the OLD /compressed suffix — it needs its own update to
+    // key off /ffmpeg instead (owned/tracked in that repo, not here). camera_info parked
+    // under image_raw/ to avoid clobbering the raw stream's canonical <topic>/camera_info.
     {
         utils::ImgConverterConfig conv = baseConv;
         conv.lowBandwidth = true;
