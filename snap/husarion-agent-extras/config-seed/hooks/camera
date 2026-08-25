@@ -69,6 +69,10 @@ def main():
     snapctl_set("ip", env("IP"))
     snapctl_set("resolution", env("RGB_RESOLUTION"))
     snapctl_set("fps", env("RGB_FPS"))
+    # Bottom of the rectify-rgb <- depth <- pointcloud chain (see CLAUDE.md);
+    # set before depth/pointcloud so a manifest that also requests one of those
+    # converges on the depthai snap's own cascade rather than fighting it.
+    snapctl_set("rectify-rgb", env("RECTIFY_RGB", "true"))
     snapctl_set("depth", "true" if b("DEPTH_ENABLE") and has_stereo else "false")
     # Same reasoning as depth above: pointcloud=true on a stereo-less model would
     # hit configure's stereo gate and exit 1 just as hard as a stale depth value.

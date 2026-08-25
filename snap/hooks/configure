@@ -166,13 +166,6 @@ if [ "$DEPTH_REQUESTED" = "true" ]; then
   esac
 fi
 
-# Persist the final, post-cascade state for the next run's before/after diff.
-{
-  echo "PREV_RECT=${RECT_REQUESTED}"
-  echo "PREV_DEPTH=${DEPTH_REQUESTED}"
-  echo "PREV_POINTCLOUD=${POINTCLOUD_REQUESTED}"
-} > "$CHAIN_STATE_FILE"
-
 # driver.resolution / driver.fps: override rgb.i_resolution / rgb.i_fps at
 # launch (depthai.launch.py). Default 720P/30 (apply_defaults.sh) — a safe,
 # universal baseline (every OAK-x model supports it). Not capability-gated per
@@ -291,6 +284,21 @@ fi
 export HSC_ALLOW_ZENOH=1
 
 "$SNAP/usr/bin/configure_hook_ros.sh"
+
+# Persist the final, post-cascade rectify-rgb/depth/pointcloud state for the
+# next run's before/after diff (see the CHAIN_STATE_FILE block above). This
+# MUST be the last thing before the restart below: snapd only commits this
+# run's `snapctl set` calls once the hook exits 0, but this file write is a
+# plain filesystem write outside that transaction. Persisting it any earlier
+# — before the imu/ir gate, resolution/fps/ip validation, or the
+# camera-params/ffmpeg-params existence check, all of which can still `exit 1`
+# — would leave the chain state claiming a transition that snapd itself
+# rolled back, desyncing it from the actually-committed driver.* values.
+{
+  echo "PREV_RECT=${RECT_REQUESTED}"
+  echo "PREV_DEPTH=${DEPTH_REQUESTED}"
+  echo "PREV_POINTCLOUD=${POINTCLOUD_REQUESTED}"
+} > "$CHAIN_STATE_FILE"
 
 # Restart the daemon with the new config. snapctl restart is synchronous and
 # prints its own "Waiting for ... to stop." progress line — that's snapd's,

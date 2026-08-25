@@ -30,6 +30,8 @@ fields:
   - { key: RGB_FPS, scope: shared, type: enum, group: rgb, default: "30",
       dynamic: { path: "${SNAP_DATA}/caps/rgb_fps", glob: "*.opt" },
       label: Framerate }
+  - { key: RECTIFY_RGB, scope: shared, type: enum, group: rgb, options: ["true","false"], default: "true",
+      label: Rectify RGB, help: "Lens-corrected RGB stream — required for depth and point cloud below. Disable to save CPU if nothing downstream needs it." }
 
   # --- Depth (stereo models only) -----------------------------------------
   - { key: DEPTH_ENABLE, scope: shared, type: enum, group: depth, options: ["true","false"], default: "false",
