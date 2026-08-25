@@ -87,7 +87,10 @@ def probe_live():
         mxids = [getattr(i, "mxid", getattr(i, "deviceId", "")) for i in infos]
         ip_target = os.environ.get("HUSARION_AGENT_IP", "").strip()
         info = infos[0]
-        # Target a specific mxid/ip if the operator selected one.
+        # Unreachable since the 2026-08 redesign dropped the cockpit MXID field
+        # (HUSARION_AGENT_MXID is never set) — kept as-is pending a decision on
+        # multi-camera support; see CLAUDE.md "One camera per host" before
+        # reviving or deleting this.
         sel = os.environ.get("HUSARION_AGENT_MXID", "").strip()
         for i in infos:
             if sel and getattr(i, "mxid", "") == sel:
@@ -140,11 +143,8 @@ def main():
 
     # Dynamic-enum option files (the manifest points its `dynamic.path` here).
     write_opts(caps_dir, "model", sorted(MATRIX.keys()))
-    write_opts(caps_dir, "mxid", mxids)  # empty when offline → "any device"
     write_opts(caps_dir, "rgb_resolution", caps["rgb_res"])
     write_opts(caps_dir, "rgb_fps", caps["rgb_fps"])
-    write_opts(caps_dir, "depth_resolution", caps["depth_res"])
-    write_opts(caps_dir, "depth_fps", caps["depth_fps"])
 
     record = dict(model=model, mxids=mxids, **caps)
     with open(os.path.join(caps_dir, "capabilities.json"), "w") as f:

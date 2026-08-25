@@ -12,7 +12,7 @@ namespace pipeline_gen {
 // Custom depthai_ros_driver pipeline plugins: publish raw + on-chip-H.264 for
 // each enabled stream off one OAK. Selected via `camera.i_pipeline_type`.
 
-// RGB stream only (raw image_raw + on-chip H.264 image_raw/compressed).
+// RGB stream only (raw image_raw + on-chip H.264 image_raw/ffmpeg).
 // The connected unit is an OAK-1 — this is the verified path.
 class RGBDual : public depthai_ros_driver::pipeline_gen::BasePipeline {
    public:

@@ -121,6 +121,12 @@ void DepthDual::setupQueues(std::shared_ptr<dai::Device> device) {
     baseConv.isStereo = true;
 
     // Raw metric depth (16UC1) — outputDisparity=false so the converter yields depth.
+    // The preset's ${name}.stereo.image_raw.enable_pub_plugins allowlist controls which
+    // of this plain image_transport publisher's own LAZY republishers stay enabled —
+    // 'image_transport/raw' always; 'image_transport/compressedDepth' too when
+    // driver.depth=true, for lossless-ish PNG software depth compression on demand
+    // (zero cost unless actually subscribed). Deliberately NOT 'image_transport/compressed'
+    // or 'theora' — those transports assume 8-bit color and mishandle 16-bit depth.
     {
         utils::ImgConverterConfig conv = baseConv;
         conv.lowBandwidth = false;
@@ -131,6 +137,8 @@ void DepthDual::setupQueues(std::shared_ptr<dai::Device> device) {
         depthPub->setup(device, conv, pub);
     }
     // Disparity grayscale H.264 view — outputDisparity=true + lowBandwidth (encoded).
+    // Topic suffix matches the standard ffmpeg_image_transport convention (2026-08;
+    // was /compressed) — see rgb_dual.cpp for the same rename + rationale.
     {
         utils::ImgConverterConfig conv = baseConv;
         conv.lowBandwidth = true;
@@ -138,7 +146,7 @@ void DepthDual::setupQueues(std::shared_ptr<dai::Device> device) {
         conv.ffmpegEncoder = "h264";
         utils::ImgPublisherConfig pub = basePub;
         pub.publishCompressed = true;
-        pub.compressedTopicSuffix = "/image_raw/compressed";
+        pub.compressedTopicSuffix = "/image_raw/ffmpeg";
         pub.infoSuffix = "/image_raw";
         viewPub->setup(device, conv, pub);
     }

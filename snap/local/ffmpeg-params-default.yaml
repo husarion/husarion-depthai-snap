@@ -1,47 +1,45 @@
 ---
-# ffmpeg_image_transport 3.x derives the parameter prefix from the publisher's
-# advertised base topic name (slash → dot, leading slash stripped):
-#   - depthai_ros_driver::Camera advertises `oak/rgb/image_raw`
-#       → prefix `oak.rgb.image_raw.ffmpeg.*`
-#   - image_proc::RectifyNode advertises base name `image_rect` (later remapped)
-#       → prefix `image_rect.ffmpeg.*`
-# If you change `driver.name` from the default `oak`, update the first block.
+# HOST-side ffmpeg_image_transport config — scoped ONLY to image_proc::RectifyNode's
+# rectified RGB stream (`.../oak/rgb/image_rect`). NOT for the raw stream: the
+# on-chip H.264 (.../oak/rgb/image_raw/ffmpeg, husarion_depthai_pipeline) is a
+# completely separate, hardware-encoded path that doesn't use image_transport
+# or this file at all — see CLAUDE.md "ffmpeg_image_transport for image_rect".
 #
-# Recognized keys (from libffmpeg_image_transport_component.so):
-#   encoder, bit_rate, gop_size, qmax, max_b_frames, pixel_format,
-#   encoder_av_options (comma-separated `key:value` pairs, e.g. `preset:ultrafast,tune:zerolatency`),
-#   encoder_measure_performance.
+# Why this is still needed even with on-chip H.264 covering streaming: the
+# on-chip encoder taps the RAW (pre-rectification) ColorCamera.video output —
+# there is no hardware equivalent for the RECTIFIED frame. A consumer that
+# specifically needs an undistorted + compressed stream has no free path;
+# this is it, at host CPU cost (~127% of a core when actually subscribed —
+# image_transport publishers are lazy, so zero cost otherwise).
+#
+# ffmpeg_image_transport derives its ROS parameter prefix from the PUBLISHER'S
+# OWN advertised base topic name (before remapping) — image_proc::RectifyNode
+# advertises "image_rect", so the prefix is `image_rect.*`, not
+# `<name>.rgb.image_rect.*`.
 /**:
   ros__parameters:
-    oak:
-      rgb:
-        image_raw:
-          ffmpeg:
-            encoder: libx264
-            # 2 Mbps target — comfortable for teleop over WiFi 2.4 GHz /
-            # weaker links. Bump to 4-6 Mbps for stable LAN if quality matters
-            # more than bandwidth. libx264 requires an explicit bitrate; the
-            # default sentinel -1 makes `avcodec_open2` fail.
-            bit_rate: 2000000
-            # IDR keyframe every 30 frames (~1 s @ 30 fps). Do NOT use
-            # intra-refresh here: the cockpit decodes this stream in the browser
-            # via WebCodecs (husarion_camera passthrough → CompressedVideo), and
-            # WebCodecs CANNOT start without a real IDR keyframe — an
-            # intra-refresh stream emits none, so the video stays black. gop_size
-            # gives one IDR per second (a late subscriber waits ≤1 s).
-            gop_size: 30
-            # tune:zerolatency already makes libx264 emit Constrained Baseline
-            # (no B-frames) → the WebCodecs decoder is reliably 1-in-1-out. Do NOT
-            # add an explicit `profile:baseline` av-option: the ffmpeg_image_transport
-            # plugin fails to open the encoder when it's set. preset:ultrafast keeps
-            # host CPU low.
-            encoder_av_options: "preset:ultrafast,tune:zerolatency"
     image_rect:
+      # RectifyNode never had this set, so image_transport defaulted to loading
+      # EVERY installed transport plugin — including compressedDepth, which
+      # assumes 16-bit depth data and makes no sense for 8-bit RGB. Explicit
+      # allowlist instead (2026-08 fix). theora excluded deliberately (not a
+      # bug like compressedDepth was) — no OAK-published image supports it.
+      enable_pub_plugins: ['image_transport/raw', 'image_transport/compressed', 'image_transport/zstd', 'image_transport/ffmpeg']
       ffmpeg:
         encoder: libx264
+        # 2 Mbps target — comfortable for teleop over WiFi 2.4 GHz / weaker
+        # links. libx264 requires an explicit bitrate; the default sentinel -1
+        # makes `avcodec_open2` fail.
         bit_rate: 2000000
+        # IDR keyframe every 30 frames (~1 s @ 30 fps). Do NOT use intra-refresh:
+        # the cockpit decodes this stream in the browser via WebCodecs, which
+        # cannot start without a real IDR keyframe — an intra-refresh stream
+        # emits none, so the video stays black. gop_size gives one IDR per
+        # second (a late subscriber waits <=1 s).
         gop_size: 30
-        # IDR keyframes (no intra-refresh) — see the rgb block above: required for
-        # the cockpit's in-browser WebCodecs decode path. zerolatency already gives
-        # Constrained Baseline; no explicit profile (it breaks the encoder open).
+        # tune:zerolatency already makes libx264 emit Constrained Baseline (no
+        # B-frames) -> the WebCodecs decoder is reliably 1-in-1-out. Do NOT add
+        # an explicit `profile:baseline` av-option: the ffmpeg_image_transport
+        # plugin fails to open the encoder when it's set. preset:ultrafast
+        # keeps host CPU low.
         encoder_av_options: "preset:ultrafast,tune:zerolatency"

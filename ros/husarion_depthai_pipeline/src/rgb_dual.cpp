@@ -129,7 +129,7 @@ void RGBDual::setupQueues(std::shared_ptr<dai::Device> device) {
 
     // Raw: plain image_transport camera publisher → <topic>/image_raw + <topic>/camera_info.
     // (Suppress its republisher plugins via oak.rgb.image_raw.enable_pub_plugins:['image_transport/raw']
-    //  in the preset, so the on-chip H.264 is the sole publisher on .../compressed.)
+    //  in the preset, so the on-chip H.264 is the sole publisher on .../ffmpeg.)
     {
         utils::ImgConverterConfig conv = baseConv;
         conv.lowBandwidth = false;
@@ -140,18 +140,21 @@ void RGBDual::setupQueues(std::shared_ptr<dai::Device> device) {
         pub.height = rawH;
         rawPub->setup(device, conv, pub);
     }
-    // Encoded: on-chip H.264 → <topic>/image_raw/compressed (FFMPEGPacket). The
-    // FFMPEGPacket codec token is set to "h264" (the bitstream IS on-chip h264, not
-    // libx264); the cockpit keys the "sensor" provenance badge off the /compressed
-    // suffix, and accepts h264/libx264/h264_* alike. camera_info parked under
-    // image_raw/ to avoid clobbering the raw stream's canonical <topic>/camera_info.
+    // Encoded: on-chip H.264 → <topic>/image_raw/ffmpeg (FFMPEGPacket) — matches the
+    // standard image_transport ffmpeg_image_transport topic suffix convention (2026-08;
+    // was /compressed, which by convention is JPEG/PNG via compressed_image_transport).
+    // The FFMPEGPacket codec token is set to "h264" (the bitstream IS on-chip h264, not
+    // libx264) and accepts h264/libx264/h264_* alike. The cockpit's "sensor" provenance
+    // badge currently keys off the OLD /compressed suffix — it needs its own update to
+    // key off /ffmpeg instead (owned/tracked in that repo, not here). camera_info parked
+    // under image_raw/ to avoid clobbering the raw stream's canonical <topic>/camera_info.
     {
         utils::ImgConverterConfig conv = baseConv;
         conv.lowBandwidth = true;
         conv.ffmpegEncoder = "h264";
         utils::ImgPublisherConfig pub = basePub;
         pub.publishCompressed = true;  // FFMPEGPacket (H.264)
-        pub.compressedTopicSuffix = "/image_raw/compressed";
+        pub.compressedTopicSuffix = "/image_raw/ffmpeg";
         pub.infoSuffix = "/image_raw";
         pub.width = encW;
         pub.height = encH;
