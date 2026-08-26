@@ -195,14 +195,19 @@ parts:
 
   husarion-snap-common:
     plugin: dump
-    # TEMP: husarion/husarion-snap-common#8 fixes husarion-agent/launcher.sh's
-    # `cp -a` EPERM under strict confinement (needs CAP_CHOWN it doesn't have)
-    # but isn't merged/tagged upstream yet. Points at the fork branch so CI can
-    # still fetch it. Once #8 merges and gets an official tag, switch back to
+    # TEMP: husarion/husarion-snap-common#8 (launcher.sh's `cp -a` EPERM under
+    # strict confinement — needs CAP_CHOWN it doesn't have, husarion-agent
+    # restart-loops on every start without it) plus an advisories/panels
+    # override-dir fix (husarion-agent boot-looped reading
+    # /etc/husarion-agent/advisories.d under AppArmor confinement, so it never
+    # reached its peer follow-task and ROS_NAMESPACE never cascaded into the
+    # snap — HW 2026-08-26 on rosbot). Neither is merged/tagged upstream yet;
+    # points at the fork branch carrying both so CI can still fetch it. Once
+    # merged and tagged, switch back to
     # `source: https://github.com/husarion/husarion-snap-common` +
     # `source-tag: "<new tag>"` + `source-type: git`.
     source: https://github.com/rafal-gorecki/husarion-snap-common
-    source-branch: fix/husarion-agent-chown-eperm
+    source-branch: fix/husarion-agent-advisories-snap-confinement
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
