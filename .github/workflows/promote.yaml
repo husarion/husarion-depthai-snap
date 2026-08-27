@@ -1,0 +1,62 @@
+name: Promote snap release
+on:
+  workflow_dispatch:
+    inputs:
+      from_risk:
+        description: 'Promote from (jazzy/<risk>)'
+        type: choice
+        options:
+          - edge
+          - candidate
+        default: edge
+      to_risk:
+        description: 'Promote to (jazzy/<risk>)'
+        type: choice
+        options:
+          - candidate
+          - stable
+        default: stable
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Render snapcraft.yaml
+        run: |
+          sudo apt update
+          sudo apt install python3-jinja2
+          export ROS_DISTRO=jazzy
+          export BUILD_DATE=$(date -u +%Y%m%d)
+          ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
+
+      # upload-metadata only reads summary/description/icon from a local .snap file
+      # (no lighter store API for it) — one arch is enough, this build is never
+      # published, it just carries the current listing metadata off the repo.
+      - name: Build snap
+        uses: snapcore/action-build@v1
+        id: build-snap
+        env:
+          SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS: 1
+
+      - name: Promote channel
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+          FROM_CHANNEL: jazzy/${{ inputs.from_risk }}
+          TO_CHANNEL: jazzy/${{ inputs.to_risk }}
+        run: |
+          snapcraft promote husarion-depthai \
+            --from-channel "$FROM_CHANNEL" \
+            --to-channel "$TO_CHANNEL" \
+            --yes
+
+      # --force: store copy was hand-edited.
+      - name: Push store listing metadata
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+        run: |
+          snapcraft upload-metadata --force ${{ steps.build-snap.outputs.snap }}

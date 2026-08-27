@@ -65,9 +65,5 @@ jobs:
           snap: ${{ steps.build-snap.outputs.snap }}
           release: ${{ matrix.ros_distro }}/${{ startsWith(github.ref, 'refs/tags/') && 'candidate' || 'edge' }}
 
-      # action-publish uploads the snap only — the listing needs this. --force: store copy was hand-edited.
-      - name: Push store listing metadata
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
-        run: |
-          snapcraft upload-metadata --force ${{ steps.build-snap.outputs.snap }}
+      # Listing metadata (summary/description/icon) is pushed only on promotion
+      # to stable, not on every edge/candidate publish — see promote.yaml.
