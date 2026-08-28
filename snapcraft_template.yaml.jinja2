@@ -18,14 +18,17 @@ description: |
 
   **Camera settings** (`sudo snap set husarion-depthai <key>=<value>`)
 
+  * `driver.bitrate` (default `3400000`) — on-chip H.264 encoder bitrate (bit/s) for the telepresence stream.
   * `driver.depth=true` — adds metric depth + an on-chip H.264 disparity preview. Needs a stereo OAK (rejected on OAK-1/OAK-1-LITE).
-  * `driver.pointcloud=true` — publishes a `/points` point cloud (implies `depth=true`).
-  * `driver.resolution` (`720P`/`1080P`/`4K`, default `720P`) and `driver.fps` (1-60, default `30`) — RGB resolution/framerate.
+  * `driver.fps` (1-60, default `30`) — RGB framerate.
   * `driver.imu=true` — enable the IMU, on models that have one.
-  * `driver.ir=true` — enable the IR laser dot projector + floodlight (OAK-D-PRO/-W only).
   * `driver.ip=<address>` — PoE camera's IP address; leave unset for USB.
+  * `driver.ir=true` — enable the IR laser dot projector + floodlight (OAK-D-PRO/-W only).
+  * `driver.name` — node name / topic prefix.
+  * `driver.pointcloud=true` — publishes a `/points` point cloud (implies `depth=true`).
   * `driver.rectify-rgb=false` — skip rectification to save CPU (raw image is always published regardless).
-  * `driver.name`, `driver.startup-delay` — node name / topic prefix; USB cold-start delay after a fresh reboot.
+  * `driver.resolution` (`720P`/`1080P`/`4K`, default `720P`) — RGB resolution.
+  * `driver.startup-delay` — USB cold-start delay after a fresh reboot.
 
   Every setting above is checked against the declared camera model — an unsupported combination (e.g. depth on an OAK-1) is rejected immediately with a clear reason, never a silent failure at runtime.
 
