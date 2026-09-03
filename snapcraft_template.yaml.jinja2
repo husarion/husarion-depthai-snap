@@ -198,24 +198,8 @@ parts:
 
   husarion-snap-common:
     plugin: dump
-    # TEMP: staging branch combining every husarion-snap-common fix pending
-    # upstream merge (husarion/husarion-snap-common PRs #6, #7, #9, #10 — the
-    # last two also cover #8, cherry-picked into #10): factory ros.env
-    # hardcoded another snap's path; rmw/ tree wasn't self-healing on
-    # `snap refresh` across the 0.5.0→0.6.0 layout change; ROS_LOCALHOST_ONLY
-    # kept exporting on jazzy instead of translating to
-    # ROS_AUTOMATIC_DISCOVERY_RANGE; launcher.sh's `cp -a` EPERM'd under
-    # strict confinement (needs CAP_CHOWN it doesn't have); launcher.sh never
-    # pointed --advisories-* at snap-safe paths, so husarion-agent boot-looped
-    # reading /etc/husarion-agent/advisories.d under AppArmor confinement and
-    # never reached its peer follow-task — ROS_NAMESPACE never cascaded into
-    # the snap (HW 2026-08-26 on rosbot). None of these are merged/tagged
-    # upstream yet; points at the fork branch carrying all of them so CI can
-    # still fetch it. Once merged and tagged, switch back to
-    # `source: https://github.com/husarion/husarion-snap-common` +
-    # `source-tag: "<new tag>"` + `source-type: git`.
-    source: https://github.com/rafal-gorecki/husarion-snap-common
-    source-branch: fix/husarion-snap-common-pending-fixes
+    source: https://github.com/husarion/husarion-snap-common
+    source-tag: "0.14.0"
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
@@ -262,7 +246,7 @@ parts:
     source: snap/husarion-agent-extras/
     source-type: local
     build-environment:
-      - HA_VERSION: "1.11.2"
+      - HA_VERSION: "1.13.0"
     build-packages:
       - curl
     override-build: |

@@ -20,7 +20,7 @@ snapcraft_template.yaml.jinja2  ──► render_template.py ──► snap/snap
    (just build / CI: jazzy only)
 
 snap/local/*               ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-depthai/config
-husarion-snap-common@0.13.0 ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-snap-common/config
+husarion-snap-common@0.14.0 ──dump──►  $SNAP/usr/bin, $SNAP/usr/share/husarion-snap-common/config
 
 apps:
   daemon (systemd, restart-condition: always)  command-chain: ros_setup.sh
@@ -34,7 +34,7 @@ Detailed diagram → [ARCHITECTURE.md](ARCHITECTURE.md).
 
 1. **Never edit `snap/snapcraft.yaml` by hand.** It's a regenerated artifact from [snapcraft_template.yaml.jinja2](snapcraft_template.yaml.jinja2). It's `.gitignore`'d. Direct edits get overwritten on the next `just build`.
 2. **Every Jinja change → re-render.** After editing `snapcraft_template.yaml.jinja2` run `just build` (or `./render_template.py snapcraft_template.yaml.jinja2 snap/snapcraft.yaml` with `ROS_DISTRO` set) before building anything.
-3. **`husarion-snap-common` is pinned to tag `0.13.0`.** Provides validators, the `ros.env` generator, DDS XML, the `start/stop/restart_launcher.sh` wrappers. Editing its scripts requires changes in the external repo plus an optional pin bump — do not patch locally.
+3. **`husarion-snap-common` is pinned to tag `0.14.0`.** Provides validators, the `ros.env` generator, DDS XML, the `start/stop/restart_launcher.sh` wrappers. Editing its scripts requires changes in the external repo plus an optional pin bump — do not patch locally.
 4. **Default `driver.*` values live in 4 places.** Keep them in sync:
    - [snap/local/apply_defaults.sh](snap/local/apply_defaults.sh) — `set_default_if_unset driver.X <default>` (called by install AND post-refresh hooks; idempotent so refreshes don't clobber user values)
    - [snap/hooks/configure](snap/hooks/configure) — `VALID_DRIVER_KEYS` + validators
@@ -147,7 +147,7 @@ just remove-lxd-cache   # free space from snapcraft LXD containers
 ### Two apps sharing the same `launcher.sh`
 
 - `daemon` (systemd) and `husarion-depthai` (foreground) both invoke the same `launcher.sh`.
-- `husarion-depthai` additionally has [check_daemon_running.sh](https://github.com/husarion/husarion-snap-common/blob/0.13.0/local-ros/check_daemon_running.sh) in its command-chain — it detects a live daemon and tells the user to stop it first.
+- `husarion-depthai` additionally has [check_daemon_running.sh](https://github.com/husarion/husarion-snap-common/blob/0.14.0/local-ros/check_daemon_running.sh) in its command-chain — it detects a live daemon and tells the user to stop it first.
 - The foreground does not respect `restart-condition` or the flag-file logic (because daemon and foreground may have separate `$SNAP_DATA`? — to be confirmed, but the code uses `$SNAP_DATA`, which is per-snap, not per-app).
 
 ### `pointcloud` requires the RGBD pipeline — but NOT the device-side Sync node
