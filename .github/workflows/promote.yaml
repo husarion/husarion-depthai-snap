@@ -16,32 +16,18 @@ on:
           - candidate
           - stable
         default: stable
+      update_metadata:
+        description: 'Also push the store description and metadata from the repo (rebuilds the snap)'
+        type: boolean
+        default: true
 
 jobs:
   promote:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-tags: true
-
-      - name: Render snapcraft.yaml
-        run: |
-          sudo apt update
-          sudo apt install python3-jinja2
-          export ROS_DISTRO=jazzy
-          export BUILD_DATE=$(date -u +%Y%m%d)
-          ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
-
-      # upload-metadata only reads summary/description/icon from a local .snap file
-      # (no lighter store API for it) — one arch is enough, this build is never
-      # published, it just carries the current listing metadata off the repo.
-      - name: Build snap
-        uses: snapcore/action-build@v1
-        id: build-snap
-        env:
-          SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS: 1
+      - name: Install snapcraft
+        run: sudo snap install snapcraft --classic
 
       - name: Promote channel
         env:
@@ -53,6 +39,33 @@ jobs:
             --from-channel "$FROM_CHANNEL" \
             --to-channel "$TO_CHANNEL" \
             --yes
+
+  metadata:
+    if: inputs.update_metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Render snapcraft.yaml
+        run: |
+          sudo apt update
+          sudo apt install python3-jinja2 python3-yaml
+          export ROS_DISTRO=jazzy
+          export BUILD_DATE=$(date -u +%Y%m%d)
+          ./render_template.py ./snapcraft_template.yaml.jinja2 snap/snapcraft.yaml
+
+      # upload-metadata only reads summary/description/icon from a local .snap
+      # file (no lighter store API for it) — one arch is enough; this build is
+      # never published, it just carries the current listing metadata off the repo.
+      - name: Build snap
+        uses: snapcore/action-build@v1
+        id: build-snap
+        env:
+          SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS: 1
 
       # --force: store copy was hand-edited.
       - name: Push store listing metadata

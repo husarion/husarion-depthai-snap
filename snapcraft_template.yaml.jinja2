@@ -25,10 +25,16 @@ description: |
   * `driver.ip=<address>` — PoE camera's IP address; leave unset for USB.
   * `driver.ir=true` — enable the IR laser dot projector + floodlight (OAK-D-PRO/-W only).
   * `driver.name` — node name / topic prefix.
-  * `driver.pointcloud=true` — publishes a `/points` point cloud (implies `depth=true`).
+  * `driver.pointcloud=true` — publishes a `/points` point cloud.
   * `driver.rectify-rgb=false` — skip rectification to save CPU (raw image is always published regardless).
   * `driver.resolution` (`720P`/`1080P`/`4K`, default `720P`) — RGB resolution.
   * `driver.startup-delay` — USB cold-start delay after a fresh reboot.
+
+  **Pipeline** (each stage needs the one on its left)
+
+     rgb -> rectify-rgb -> depth -> pointcloud
+
+  Enabling a stage enables those to its left; disabling one disables those to its right.
 
   Every setting above is checked against the declared camera model — an unsupported combination (e.g. depth on an OAK-1) is rejected immediately with a clear reason, never a silent failure at runtime.
 
