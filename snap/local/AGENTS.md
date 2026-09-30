@@ -26,7 +26,7 @@ sudo husarion-depthai.start
    - `driver.depth` (default `false`) — adds metric depth + an on-chip H.264 disparity preview; rejected on OAK-1/OAK-1-LITE.
    - `driver.pointcloud` (default `false`) — setting this `true` automatically sets `driver.depth=true` too (a pointcloud needs a depth topic to draw from).
    - `driver.resolution` (default `720P`; `720P`/`1080P`/`4K`), `driver.fps` (default `30`; 1-60).
-   - `driver.imu`, `driver.ir` (both default `false`) — capability-gated per model. `ir` toggles the IR laser dot projector AND floodlight together (one upstream switch).
+   - `driver.imu`, `driver.ir` (both default `false`) — capability-gated per model. `ir` turns on the IR laser dot projector (floodlight stays off); `driver.ir-intensity` (default `400`, 0-1200 mA) sets its current — above ~400 with depth on, a USB-powered camera browns out and needs a Y-adapter.
    - `driver.ip` (no default, unset = USB) — PoE target address.
    - `driver.rectify-rgb`, `driver.startup-delay`.
    - `ros.namespace`, `ros.domain-id`, `ros.transport`.

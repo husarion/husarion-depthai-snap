@@ -42,5 +42,6 @@ set_default_if_unset driver.resolution 720P
 set_default_if_unset driver.fps 30
 set_default_if_unset driver.imu false
 set_default_if_unset driver.ir false
+set_default_if_unset driver.ir-intensity 400
 set_default_if_unset driver.rectify-rgb true
 set_default_if_unset driver.bitrate 3400000

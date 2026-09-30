@@ -23,7 +23,8 @@ description: |
   * `driver.fps` (1-60, default `30`) — RGB framerate.
   * `driver.imu=true` — enable the IMU, on models that have one.
   * `driver.ip=<address>` — PoE camera's IP address; leave unset for USB.
-  * `driver.ir=true` — enable the IR laser dot projector + floodlight (OAK-D-PRO/-W only).
+  * `driver.ir=true` — enable the IR laser dot projector (OAK-D-PRO/-W only).
+  * `driver.ir-intensity` (0-1200 mA, default `400`) — dot projector current. Higher values need a Y-adapter with external power.
   * `driver.name` — node name / topic prefix.
   * `driver.pointcloud=true` — publishes a `/points` point cloud.
   * `driver.rectify-rgb=false` — skip rectification to save CPU (raw image is always published regardless).
@@ -252,7 +253,7 @@ parts:
     source: snap/husarion-agent-extras/
     source-type: local
     build-environment:
-      - HA_VERSION: "1.19.1"
+      - HA_VERSION: "2.1.0"
     build-packages:
       - curl
     override-build: |
