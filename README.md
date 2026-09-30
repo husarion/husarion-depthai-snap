@@ -44,7 +44,7 @@ sudo snap set husarion-depthai driver.ir=true                   # default: false
 sudo snap set husarion-depthai driver.ir-intensity=400          # default: 400 — dot projector mA (0-1200); above ~400 with depth needs a Y-adapter
 sudo snap set husarion-depthai driver.ip=10.15.20.6              # default: unset (USB) — PoE target
 sudo snap set husarion-depthai driver.rectify-rgb=false         # skip image_proc::RectifyNode (default: true) — also disables depth + pointcloud if either was on
-sudo snap set husarion-depthai driver.startup-delay=30          # seconds to sleep on fresh boot (USB cold-start workaround)
+sudo snap set husarion-depthai driver.startup-delay=30          # default: 30; 0-120 — seconds to sleep on fresh boot (USB cold-start workaround)
 sudo snap set husarion-depthai driver.bitrate=3400000           # default: 3400000; 500000-20000000 — on-chip H.264 encoder bitrate (bit/s), static CBR
 
 # ROS / DDS
