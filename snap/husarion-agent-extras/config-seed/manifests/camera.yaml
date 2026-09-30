@@ -45,6 +45,9 @@ fields:
   # --- IR (Pro / PoE) ------------------------------------------------------
   - { key: IR_ENABLE, scope: shared, type: enum, group: ir, options: ["true","false"], default: "false",
       visible_when: { HAS_IR: "true" }, label: Enable IR illumination }
+  - { key: IR_INTENSITY, scope: shared, type: integer, group: ir, min: 0, max: 1200, default: 400,
+      visible_when: { IR_ENABLE: "true" }, label: Dot projector current (mA),
+      help: "Above ~400 mA with depth on, a camera powered only from the computer's USB port resets. Go higher only with a Y-adapter and an external supply." }
 
   # --- Point cloud (needs depth) -------------------------------------------
   - { key: POINTCLOUD_ENABLE, scope: shared, type: enum, group: pointcloud, options: ["true","false"], default: "false",

@@ -79,6 +79,7 @@ def main():
     snapctl_set("pointcloud", "true" if b("POINTCLOUD_ENABLE") and has_stereo else "false")
     snapctl_set("imu", "true" if b("IMU_ENABLE") and has_imu else "false")
     snapctl_set("ir", "true" if b("IR_ENABLE") and has_ir else "false")
+    snapctl_set("ir-intensity", env("IR_INTENSITY", "400"))
 
     cfg = os.path.join(SNAP, "meta", "hooks", "configure") if SNAP else ""
     if cfg and os.access(cfg, os.X_OK):

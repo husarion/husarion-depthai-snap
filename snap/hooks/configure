@@ -50,6 +50,7 @@ VALID_DRIVER_KEYS=(
   "fps"
   "imu"
   "ir"
+  "ir-intensity"
   "ip"
   "rectify-rgb"
   "bitrate"
@@ -183,6 +184,12 @@ validate_number --allow-unset "driver.fps" FPS_RANGE[@]
 # Default false (apply_defaults.sh); capability-gated below.
 validate_option --allow-unset "driver.imu" VALID_BOOL_OPTIONS[@]
 validate_option --allow-unset "driver.ir" VALID_BOOL_OPTIONS[@]
+
+# driver.ir-intensity: dot projector current in mA (camera.i_laser_dot_brightness,
+# 0-1200). Default 400 (apply_defaults.sh): upstream's 800 browns an OAK-D-PRO
+# out on a plain USB3 port once depth is on (see CLAUDE.md "OAK-D-PRO resets").
+IR_INTENSITY_RANGE=(0 1200)
+validate_number --allow-unset "driver.ir-intensity" IR_INTENSITY_RANGE[@]
 
 # driver.bitrate: overrides the on-chip H.264 encoder's i_low_bandwidth_bitrate
 # (generate_camera_params.sh). Default 3400000 (apply_defaults.sh). Static CBR,

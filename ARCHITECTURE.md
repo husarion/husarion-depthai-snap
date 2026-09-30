@@ -151,7 +151,8 @@ husarion-depthai (snap)
 │   ├── resolution        = 720P          # enum 720P|1080P|4K; overrides rgb.i_resolution
 │   ├── fps               = 30            # number 1-60; overrides rgb.i_fps + H.264 keyframe cadence
 │   ├── imu               = false         # rejected if true on a model with no IMU
-│   ├── ir                = false         # IR laser dot + floodlight together; rejected if true unless OAK-D-PRO/OAK-D-PRO-W
+│   ├── ir                = false         # IR laser dot projector (floodlight off); rejected if true unless OAK-D-PRO/OAK-D-PRO-W
+│   ├── ir-intensity      = 400           # number 0-1200 mA; camera.i_laser_dot_brightness (upstream 800 browns out on USB power)
 │   ├── ip                = (unset)       # allow-unset IPv4; PoE target address — the one key with no default
 │   └── rectify-rgb       = true          # bool; load image_proc::RectifyNode (forced off for raw-less presets)
 │
