@@ -4,11 +4,12 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    GroupAction,
     OpaqueFunction,
 )
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
+from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes, SetRemap
 from launch_ros.descriptions import ComposableNode, ParameterFile
 
 
@@ -31,7 +32,13 @@ def launch_setup(context, *args, **kwargs):
 
     container_name = f"/{namespace}/{name}_container" if namespace else f"/{name}_container"
 
-    actions = []
+    # diagnostic_updater and tf2_ros use absolute topic names, which ignore the
+    # namespace. Same remaps as rosbot_ros; no-op when namespace is empty.
+    actions = [
+        SetRemap(src="/diagnostics", dst="diagnostics"),
+        SetRemap(src="/tf", dst="tf"),
+        SetRemap(src="/tf_static", dst="tf_static"),
+    ]
 
     actions.append(
         ComposableNodeContainer(
@@ -110,7 +117,7 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
-    return actions
+    return [GroupAction(actions)]
 
 
 def generate_launch_description():

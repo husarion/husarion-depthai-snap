@@ -56,7 +56,7 @@ flowchart TB
     Daemon <-->|raw-usb / network| Cam
     FG <-->|raw-usb / network| Cam
 
-    Daemon -->|publish| Topics["ROS topics<br/>/{ns}/oak/rgb/image_raw[/compressed]<br/>/{ns}/oak/stereo/image_raw[/compressed]<br/>/{ns}/oak/points<br/>/tf, /tf_static"]
+    Daemon -->|publish| Topics["ROS topics<br/>/{ns}/oak/rgb/image_raw[/compressed]<br/>/{ns}/oak/stereo/image_raw[/compressed]<br/>/{ns}/oak/points<br/>/{ns}/diagnostics<br/>/{ns}/tf, /{ns}/tf_static"]
 ```
 
 ______________________________________________________________________
