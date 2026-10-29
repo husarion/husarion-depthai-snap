@@ -7,7 +7,9 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Not ubuntu-latest: on 26.04 sudo ignores -E, so snapcore/action-build
+    # drops SNAPCRAFT_ENABLE_EXPERIMENTAL_EXTENSIONS and the ROS extension fails.
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
