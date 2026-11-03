@@ -43,10 +43,11 @@ fields:
       help: "Above ~400 mA with depth on, a camera powered only from the computer's USB port resets. Go higher only with a Y-adapter and an external supply." }
 
   # --- What the probe found. It rewrites these on every probe, so they are
-  # set by hand only to configure a camera that is not connected.
-  - { key: HAS_STEREO, scope: local, type: enum, group: Advanced · detected hardware, options: ["true","false"], default: "false",
+  # set by hand only to configure a camera that is not connected. No default:
+  # the Cockpit never calls a detected value "not the default".
+  - { key: HAS_STEREO, scope: local, type: enum, group: Advanced · detected hardware, options: ["true","false"],
       label: Stereo (detected), help: "Auto-detected: this camera has a stereo pair (depth available)." }
-  - { key: HAS_IR, scope: local, type: enum, group: Advanced · detected hardware, options: ["true","false"], default: "false",
+  - { key: HAS_IR, scope: local, type: enum, group: Advanced · detected hardware, options: ["true","false"],
       label: IR projector (detected), help: "Auto-detected: this camera has an IR dot projector / flood LED." }
-  - { key: HAS_IMU, scope: local, type: enum, group: Advanced · detected hardware, options: ["true","false"], default: "false",
+  - { key: HAS_IMU, scope: local, type: enum, group: Advanced · detected hardware, options: ["true","false"],
       label: IMU (detected), help: "Auto-detected: this camera has an IMU." }
