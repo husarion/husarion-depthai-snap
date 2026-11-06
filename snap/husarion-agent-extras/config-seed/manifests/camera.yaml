@@ -10,7 +10,9 @@ icon: camera
 # headless `snap set` uses (see CLAUDE.md "driver.resolution/depth/imu/ir/ip").
 fields:
   # --- Device: which camera, and how ROS names it --------------------------
-  - { key: CAMERA_MODEL, scope: shared, type: enum, group: Device, default: OAK-D-PRO,
+  # No default: it depends on the robot's sensor package, and Manage's Stage
+  # defaults would reset a working robot to the wrong hardware.
+  - { key: CAMERA_MODEL, scope: shared, type: enum, group: Device,
       dynamic: { path: "${SNAP_DATA}/caps/model", glob: "*.opt" },
       label: Camera model, help: "Auto-detected when a camera is connected; pick manually to configure offline." }
   - { key: NAME, scope: shared, type: string, group: Device, pattern: '^[0-9a-z_-]{0,20}$', default: oak,
