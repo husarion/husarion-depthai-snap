@@ -21,6 +21,10 @@ install:
     sudo /var/snap/husarion-depthai/common/post_install.sh
     sudo husarion-depthai.stop
 
+# Hooks + launcher against a fake snapctl; needs a husarion-snap-common checkout with robot_world.sh (HSC_DIR).
+test:
+    python3 -m pytest -q -p no:cacheprovider test/
+
 remove:
     #!/bin/bash
     sudo snap remove husarion-depthai || true

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Stand-in for ros2: records the command line and the ROS env it ran with.
+{
+  echo "argv: $*"
+  echo "ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-}"
+  echo "ROS_NAMESPACE=${ROS_NAMESPACE:-}"
+  echo "FASTRTPS_DEFAULT_PROFILES_FILE=${FASTRTPS_DEFAULT_PROFILES_FILE:-}"
+} > "$FAKE_ROS2_LOG"

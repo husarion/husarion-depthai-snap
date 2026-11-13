@@ -29,7 +29,8 @@ done
 # custom RMW profile may still use SHM internally (and builtin FastDDS tries
 # SHM by default), but hard-failing would take down refreshed fleets that
 # never ran post_install.sh.
-if ! snapctl is-connected shm-plug; then
+# The robot world (HSC_ROBOT_WORLD from ros.env) is UDP loopback only.
+if [ -z "${HSC_ROBOT_WORLD:-}" ] && ! snapctl is-connected shm-plug; then
   ROS_TRANSPORT="$(snapctl get ros.transport)"
   case "$ROS_TRANSPORT" in
   *shm*)
@@ -93,7 +94,7 @@ done
 
 # Check if ros.namespace is set and not empty
 ROS_NAMESPACE="$(snapctl get ros.namespace)"
-if [ -n "${ROS_NAMESPACE}" ]; then
+if [ -n "${ROS_NAMESPACE}" ] && [ -z "${HSC_ROBOT_WORLD:-}" ]; then
     LAUNCH_OPTIONS+=("namespace:=${ROS_NAMESPACE}")
 fi
 

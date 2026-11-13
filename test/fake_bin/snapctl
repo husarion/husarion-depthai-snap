@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+
+# Copyright 2026 Husarion sp. z o.o.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Stand-in for snapctl in hook tests: config in $FAKE_SNAPCTL_DB (JSON).
+
+get/set/unset follow snapd: a value that parses as JSON is stored as JSON, any
+other as a string; a missing key reads as empty. Service verbs are logged to
+$FAKE_SNAPCTL_LOG; a service reads as active when $FAKE_SNAPCTL_ACTIVE (comma-separated)
+lists it, otherwise inactive; a plug reads as connected when $FAKE_SNAPCTL_CONNECTED
+(comma-separated) lists it.
+"""
+
+import json
+import os
+import sys
+
+DB = os.environ["FAKE_SNAPCTL_DB"]
+LOG = os.environ.get("FAKE_SNAPCTL_LOG", os.devnull)
+
+
+def load() -> dict:
+    try:
+        with open(DB) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+
+def save(cfg: dict) -> None:
+    with open(DB, "w") as f:
+        json.dump(cfg, f, indent=2, sort_keys=True)
+
+
+def lookup(cfg: dict, key: str):
+    node = cfg
+    for part in key.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node
+
+
+def show(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, indent=2, sort_keys=True)
+
+
+def assign(cfg: dict, key: str, value) -> None:
+    parts = key.split(".")
+    node = cfg
+    for part in parts[:-1]:
+        child = node.setdefault(part, {})
+        if not isinstance(child, dict):
+            sys.exit(f'error: cannot set "{key}": "{part}" is not a map')
+        node = child
+    if value is None:
+        node.pop(parts[-1], None)
+    else:
+        node[parts[-1]] = value
+
+
+def parse(raw: str):
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return raw
+
+
+def main(argv: list[str]) -> int:
+    with open(LOG, "a") as f:
+        f.write(" ".join(argv) + "\n")
+    verb, args = argv[0], argv[1:]
+    cfg = load()
+    if verb == "get":
+        if args and args[0] == "-d":
+            out = {k: lookup(cfg, k) for k in args[1:] if lookup(cfg, k) is not None}
+            print(json.dumps(out, indent=2, sort_keys=True))
+        else:
+            print(show(lookup(cfg, args[0])))
+        return 0
+    if verb in ("set", "unset"):
+        for item in args:
+            if verb == "unset":
+                assign(cfg, item, None)
+            elif item.endswith("!"):
+                assign(cfg, item[:-1], None)
+            else:
+                key, _, raw = item.partition("=")
+                assign(cfg, key, parse(raw))
+        save(cfg)
+        return 0
+    if verb == "services":
+        active = set(os.environ.get("FAKE_SNAPCTL_ACTIVE", "").split(","))
+        print("Service  Startup  Current  Notes")
+        for name in args:
+            state = "enabled  active" if name in active else "disabled  inactive"
+            print(f"{name}  {state}  -")
+        return 0
+    if verb == "is-connected":
+        connected = os.environ.get("FAKE_SNAPCTL_CONNECTED", "").split(",")
+        return 0 if args[0] in connected else 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

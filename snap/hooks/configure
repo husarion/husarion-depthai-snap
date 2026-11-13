@@ -302,7 +302,14 @@ fi
 # non-zenoh bridge (e.g. micro_ros_agent); depthai has no such bridge, so opt in.
 export HSC_ALLOW_ZENOH=1
 
-"$SNAP/usr/bin/configure_hook_ros.sh"
+source "$SNAP/usr/bin/robot_world.sh"
+# ros.* stay stored (the agent chain still pushes them) but do not apply while
+# joined: the robot world is fixed and namespaced only at the rosbot airlock.
+if hsc_join_robot_world "${SNAP_COMMON}/ros-world"; then
+  log_and_echo "Joined the rosbot snap's robot world (domain 0, no namespace); ros.* keys are not used while ros-world is connected."
+else
+  "$SNAP/usr/bin/configure_hook_ros.sh"
+fi
 
 # Persist the final, post-cascade rectify-rgb/depth/pointcloud state for the
 # next run's before/after diff (see the CHAIN_STATE_FILE block above). This

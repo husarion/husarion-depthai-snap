@@ -84,6 +84,14 @@ plugs:
     interface: content
     content: husarion-agent-chain
     target: $SNAP_COMMON/agent-chain-upstream
+  # The rosbot snap's robot world (its worlds/ dir: robot.env + fastdds.xml).
+  # Connected, the driver joins it (domain 0, UDP loopback, no namespace) and
+  # the ros.* keys are kept but unused; the rosbot airlock adds the robot
+  # namespace on the LAN. No default-provider, same reason as agent-chain.
+  ros-world:
+    interface: content
+    content: ros-world
+    target: $SNAP_COMMON/ros-world
 
 apps:
 
@@ -206,7 +214,7 @@ parts:
   husarion-snap-common:
     plugin: dump
     source: https://github.com/husarion/husarion-snap-common
-    source-tag: "0.16.1"
+    source-branch: devel
     source-type: git
     build-environment:
       - YQ_VERSION: "v4.35.1"
