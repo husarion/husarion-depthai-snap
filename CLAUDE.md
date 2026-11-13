@@ -34,7 +34,7 @@ Detailed diagram → [ARCHITECTURE.md](ARCHITECTURE.md).
 
 1. **Never edit `snap/snapcraft.yaml` by hand.** It's a regenerated artifact from [snapcraft_template.yaml.jinja2](snapcraft_template.yaml.jinja2). It's `.gitignore`'d. Direct edits get overwritten on the next `just build`.
 2. **Every Jinja change → re-render.** After editing `snapcraft_template.yaml.jinja2` run `just build` (or `./render_template.py snapcraft_template.yaml.jinja2 snap/snapcraft.yaml` with `ROS_DISTRO` set) before building anything.
-3. **`husarion-snap-common` follows `source-branch: devel` on this branch** (needs `robot_world.sh`; last tag 0.16.1, pin a tag again before release). Provides validators, the `ros.env` generator, DDS XML, the `start/stop/restart_launcher.sh` wrappers. Editing its scripts requires changes in the external repo plus an optional pin bump — do not patch locally.
+3. **`husarion-snap-common` follows `source-branch: devel-next` on this branch** (needs `robot_world.sh`; last tag 0.16.1, pin a tag again before release). Provides validators, the `ros.env` generator, DDS XML, the `start/stop/restart_launcher.sh` wrappers. Editing its scripts requires changes in the external repo plus an optional pin bump — do not patch locally.
 4. **Default `driver.*` values live in 4 places.** Keep them in sync:
    - [snap/local/apply_defaults.sh](snap/local/apply_defaults.sh) — `set_default_if_unset driver.X <default>` (called by install AND post-refresh hooks; idempotent so refreshes don't clobber user values)
    - [snap/hooks/configure](snap/hooks/configure) — `VALID_DRIVER_KEYS` + validators
