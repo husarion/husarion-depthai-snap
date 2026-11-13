@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""configure, the ros-world plug hooks and the
+"""configure, the ros-world plug hooks, the join-at-start chain step and the
 launcher against a fake $SNAP, a fake snapctl and a temp $SNAP_COMMON (no snapd,
 no root, no ROS).
 
@@ -231,3 +231,43 @@ def test_disconnect_hook_never_fails(snap: Snap, tmp_path: Path):
     result = snap.hook("disconnect-plug-ros-world")
     assert result.returncode == 0, result.stderr
     assert "ros.* keys are invalid" in result.stderr
+
+
+def test_daemon_start_joins_a_world_rendered_after_configure(snap: Snap, tmp_path: Path):
+    assert snap.hook("configure").returncode == 0
+    assert "HSC_ROBOT_WORLD" not in snap.ros_env()
+
+    snap.mount_ros_world(tmp_path)
+    result = snap.launch("join_robot_world.sh", "ros_setup.sh")
+    assert result.returncode == 0, result.stderr
+    ran = snap.ros2_log.read_text()
+    assert "namespace:=" not in ran
+    assert "ROS_DOMAIN_ID=0" in ran
+    assert "export HSC_ROBOT_WORLD=1" in snap.ros_env()
+
+
+def test_daemon_start_picks_up_a_re_rendered_world(snap: Snap, tmp_path: Path):
+    snap.mount_ros_world(tmp_path)
+    assert snap.hook("configure").returncode == 0
+    (snap.common / "ros-world" / "robot.env").write_text(
+        "export ROS_DOMAIN_ID=5\nexport FASTRTPS_DEFAULT_PROFILES_FILE=/stale/fastdds.xml\n"
+    )
+
+    result = snap.launch("join_robot_world.sh", "ros_setup.sh")
+    assert result.returncode == 0, result.stderr
+    ran = snap.ros2_log.read_text()
+    assert "ROS_DOMAIN_ID=5" in ran
+    assert f"FASTRTPS_DEFAULT_PROFILES_FILE={snap.common}/ros-world/fastdds.xml" in ran
+
+
+def test_daemon_start_without_mount_keeps_ros_env(snap: Snap):
+    assert snap.hook("configure").returncode == 0
+    before = snap.ros_env()
+
+    config = snap.config()
+    config["ros"]["transport"] = "udp"
+    snap.db.write_text(json.dumps(config))
+    result = snap.launch("join_robot_world.sh", "ros_setup.sh")
+    assert result.returncode == 0, result.stderr
+    assert snap.ros_env() == before
+    assert "namespace:=rosbot_e4607f" in snap.ros2_log.read_text()

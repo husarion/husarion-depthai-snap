@@ -97,7 +97,7 @@ apps:
 
   daemon:
     command: usr/bin/launcher.sh
-    command-chain: [usr/bin/ros_setup.sh]
+    command-chain: [usr/bin/join_robot_world.sh, usr/bin/ros_setup.sh]
     daemon: simple
     install-mode: disable   # disabled until driver.model is set; enabled by `husarion-depthai.start`
     restart-condition: always
