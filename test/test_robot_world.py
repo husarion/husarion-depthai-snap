@@ -116,7 +116,7 @@ class Snap:
         owner_common = root / f"rosbot-common-{len(list(root.glob('rosbot-common-*')))}"
         owner_common.mkdir()
         env = dict(self.env, SNAP_COMMON=str(owner_common), HSC_WORLD_TEMPLATES=str(HSC_DIR / "local-ros" / "worlds"))
-        script = f'source "{HSC_DIR}/local-ros/utils.sh"; source "{HSC_DIR}/local-ros/robot_world.sh"; render_robot_world --shm=false'
+        script = f'source "{HSC_DIR}/local-ros/utils.sh"; source "{HSC_DIR}/local-ros/robot_world.sh"; render_robot_world'
         subprocess.run(["bash", "-c", script], env=env, check=True)
         shutil.rmtree(self.common / "ros-world", ignore_errors=True)
         shutil.copytree(owner_common / "worlds", self.common / "ros-world")
