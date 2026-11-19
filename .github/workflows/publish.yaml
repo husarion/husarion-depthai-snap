@@ -6,6 +6,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Store channel branch, e.g. devel-next -> <distro>/edge/devel-next (empty: plain edge)"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   # One date for the whole run: the per-arch build jobs start minutes apart and
@@ -64,7 +70,7 @@ jobs:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
         with:
           snap: ${{ steps.build-snap.outputs.snap }}
-          release: ${{ matrix.ros_distro }}/${{ startsWith(github.ref, 'refs/tags/') && 'candidate' || 'edge' }}
+          release: ${{ matrix.ros_distro }}/${{ startsWith(github.ref, 'refs/tags/') && 'candidate' || 'edge' }}${{ inputs.branch && format('/{0}', inputs.branch) || '' }}
 
       # Listing metadata (summary/description/icon) is pushed only on promotion
       # to stable, not on every edge/candidate publish — see promote.yaml.
